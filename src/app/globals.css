@@ -1,0 +1,176 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+html {
+  scroll-behavior: smooth;
+  cursor: none;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+a {
+  cursor: none;
+}
+
+.react-flow__pane.draggable {
+  cursor: none !important;
+}
+
+.react-flow__node.draggable {
+  cursor: none !important;
+}
+
+/* Navigation */
+nav .left:hover #reversek path {
+  stroke-dasharray: 200;
+  stroke-width: 3;
+  fill: none;
+  animation: dash 5s linear;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 1000;
+  }
+}
+
+#reversek path {
+  fill: black;
+  stroke: black;
+  transition: fill 0.8s;
+}
+
+.underline-link::before {
+  content: "";
+  position: absolute;
+  display: block;
+  width: 0%;
+  height: 1px;
+  bottom: 0;
+  left: 0;
+  background-color: black;
+  transition: width 0.3s ease;
+}
+
+.underline-link:hover::before {
+  width: 100%;
+}
+
+.underline-link {
+  position: relative; 
+}
+
+/* Scroll hide */
+/* width */
+::-webkit-scrollbar {
+  width: 0px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.box-container {
+  position: fixed; 
+  pointer-events: none;
+  contain: layout;
+  opacity: 1;
+}
+
+/* Style for the corner markers */
+.box-container::before,
+.box-container::after {
+  content: ''; 
+  contain: layout;
+  position: fixed; 
+  width: 20px; 
+  height: 20px;
+  border-color: white; 
+  border-style: solid; 
+  pointer-events: none;
+}
+
+/* Top-left corner */
+.box-container::before {
+    top: 0;
+    left: 0;
+    border-width: 2px 0 0 2px; /* Top and left borders */
+}
+
+.box-container .corner {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  border-color: black;
+  border-style: solid;
+}
+
+.box-container .top-left {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+}
+
+.box-container .top-right {
+  top: 0;
+  right: 0;
+  border-width: 2px 2px 0 0;
+}
+
+.box-container .bottom-left {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 2px 2px;
+}
+
+.box-container .bottom-right {
+  bottom: 0;
+  right: 0;
+  border-width: 0 2px 2px 0;
+}
+
+.center-dot {
+  position: fixed;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%; 
+  z-index: 9999999;
+  pointer-events: none;
+  opacity: 1;
+}
+
+@media only screen and (max-width: 600px) {
+  .center-dot {
+    width: 0px;
+    height: 0px;
+    opacity: 0;
+  }
+
+  .box-container {
+    opacity: 0;
+  }
+}
