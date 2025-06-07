@@ -8,7 +8,7 @@ import Main from "@/pages/(main)/layout";
 import { motion, useTransform, useScroll as useFramerScroll } from "framer-motion";
 import Link from "next/link";
 
-export const Home = () => {
+export const Page = () => {
   const { scrollYProgress } = useFramerScroll();
   const opacity = useTransform(() => 0.9 - scrollYProgress.get());
   const yProgress = useTransform(() => 0 - scrollYProgress.get() * 10);
@@ -59,7 +59,7 @@ export const Home = () => {
 
 
 
-export default Home;
+export default Page;
 
 
 
