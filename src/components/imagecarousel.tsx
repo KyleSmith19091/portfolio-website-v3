@@ -16,6 +16,9 @@ const Rig = (props: RigProps) => {
       // Rotate contents based on scroll
       ref.current.rotation.y += rotationSpeed * delta;
     }
+    if (!state.events.update) {
+      return;
+    }
     state.events.update(); // Raycasts every frame rather than on pointer-move
     // Move camera based on pointer and slightly up
     easing.damp3(state.camera.position, [-state.pointer.x * 2, state.pointer.y + 1.5, 10], 0.3, delta);
