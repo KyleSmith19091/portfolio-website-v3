@@ -9,20 +9,19 @@ import { Mesh } from "three";
 import Magnetic from "./magnetic";
 
 const Hero = () => {
-    const cameraSettings = {
-        fov: 45,
-        zoom: 100,
-        near: 0.1,
-        far: 200,
-        position: [3, 2, 6]
-    };
     return (
         <div className="w-full h-screen">
             <motion.div transition={{ duration: 1.2, delay: 0.7 }} animate={{ y: [100, 0], opacity: [0.0, 1.0] }} className="w-full h-[70%]">
                 <Canvas
                     orthographic
-                    camera={cameraSettings}
                     className="w-full h-full"
+                    camera={{
+                        fov: 45,
+                        zoom: 100,
+                        near: 0.1,
+                        far: 200,
+                        position: [3,2,6]
+                    }}
                 >
                     <Scene />
                 </Canvas>
