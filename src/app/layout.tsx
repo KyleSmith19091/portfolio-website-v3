@@ -58,9 +58,6 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-      <link rel="icon" href="/favicon.svg" sizes="any" />
-      </head>
       <body
         className={`${futura.className} antialiased min-h-screen m-0`}
       >

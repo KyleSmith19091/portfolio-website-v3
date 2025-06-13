@@ -14,8 +14,10 @@ const useFollowPointer = (ref: RefObject<HTMLDivElement | null>, hoveredElement:
             const y = clientY - element.offsetTop - element.offsetHeight / 2;
             setPosition({ x, y });
         }
+
         const handleScroll = () => {
             if (hoveredElement) {
+                console.log("HANDLE SCROLL!");
                 const element = ref.current!;
                 setPosition({
                     x: element.getBoundingClientRect().x - element.offsetLeft - element.offsetWidth / 2,

@@ -1,6 +1,7 @@
 "use client"
 
 import AboutMe from "@/components/aboutme";
+import Footer from "@/components/footer";
 import Hero from "@/components/hero";
 import Magnetic from "@/components/magnetic";
 import Work from "@/components/work";
@@ -19,39 +20,18 @@ const Page = () => {
           <Hero />
         </motion.section>
 
-        <motion.hr initial={{width: 0, height: "3px"}} whileInView={{width: "100%"}} transition={{duration:0.8}}/>
-
         <motion.section whileInView={{ y: [100, 0], opacity: [0.0, 1.0] }} transition={{ duration: 0.8, delay: 0.2 }} id="aboutme" className="w-full min-h-screen space-y-8">
           <AboutMe />
         </motion.section>
 
-        <motion.hr initial={{width: 0, height: "3px"}} whileInView={{width: "100%"}} transition={{duration:0.8}}/>
-
-        <motion.section whileInView={{ y: [100, 0], opacity: [0.0, 1.0] }} transition={{ duration: 0.8, delay: 0.2 }} id="work" className="w-full h-screen space-y-8">
+        <motion.section whileInView={{ y: [100, 0], opacity: [0.0, 1.0] }} transition={{ duration: 0.8, delay: 0.2 }} id="work" className="w-full min-h-full space-y-8">
           <Work />
         </motion.section>
 
-        <motion.section whileInView={{ y: [100, 0], opacity: [0.0, 1.0] }} transition={{ duration: 0.8, delay: 0.2 }} id="work" className="w-full h-screen space-y-8">
-          <div className="flex flex-col items-center justify-center h-full">
-            <h1 className="text-4xl">Thank you for visiting!</h1>
-            <ul className="flex items-center space-x-3">
-              <li>
-                <Magnetic>
-                  <Link href="https://github.com/KyleSmith19091" className="underline-link" target="_blank">
-                    Github
-                  </Link>
-                </Magnetic>
-              </li>
-              <li>
-                <Magnetic>
-                  <Link href="https://www.linkedin.com/in/kyle-s-008636162/" className="underline-link" target="_blank">
-                    LinkedIn
-                  </Link>
-                </Magnetic>
-              </li>
-            </ul>
-          </div>
+        <motion.section whileInView={{ y: [100, 0], opacity: [0.0, 1.0] }} transition={{ duration: 0.8, delay: 0.2 }} id="footer" className="w-full h-full space-y-8">
+          <Footer />
         </motion.section>
+
       </motion.div>
     </Main>
   );

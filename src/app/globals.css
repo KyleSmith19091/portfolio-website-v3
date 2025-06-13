@@ -109,7 +109,7 @@ nav .left:hover #reversek path {
   position: fixed; 
   width: 20px; 
   height: 20px;
-  border-color: white; 
+  border-color: transparent; 
   border-style: solid; 
   pointer-events: none;
 }

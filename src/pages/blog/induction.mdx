@@ -1,24 +1,27 @@
 import MdxLayout from '../../components/mdx';
 import Magnetic from '../../components/magnetic';
+import Spinner from '../../components/spinner';
 import Circuit from './(induction)/circuit'; 
 
 # Induction Circuits
 <span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2025-03-01</span>
  
 Induction is defined according to the Oxford dictionary as *the process or action of bringing about or giving rise to something*.
-It has been found that one of the internal reasoning processes a language model can perform is *induction*. Put differently LLMs can perform the action of detecting and continuing repeated substrings in text, by finding patterns.
+It has been found that one of the internal reasoning processes a language model can perform is *induction*. Put differently LLMs can perform the action of detecting and continuing repeated substrings in text, by finding patterns. This is behaviour is more commonly recognised as *in-context learning*. Induction could argubaly be seen as the one of the backbones that make LLMs useful.
 
 For example if a language model is given the input: *The vision of Apple was conceived by Steve Jobs. Steve ...*. The model needs to predict what comes after *Steve*, to simplify this example, assume the model is only able to perform induction to predict the next token and does not use some other reasoning process. The model will predict the next token by looking back into the context and sees that *Jobs* follows *Steve*. So it induces that *Jobs* is likely to follow *Steve*. 
 
-I know you might be thinking, "well duh?". Well I concede this fact might seem trivial to us, but this is one of the many discovered as an internal reasoning processes of large language models. The cool thing is that it is a behvaiour it discovered on its own without being directly optimised for. Large language models and neural networks have long been regarded as *black-boxes*, mystical machines that can discover meaningful relationships in text. My favourite sub-field of computer science has always been algorithm design, algorithms are how we as programmers structure our thoughts on how to solve a problem before we instill those thoughts into a computer. But on a more abstract level, algorithms represent the programmer's ideas on solving a problem. Well the problem of predicting the most likely token given a passage of text is a problem, but the question is: what would the algorithm be?
+I know you might be thinking, "well duh?". Well I concede this fact might seem trivial to us, but this is one of the many discovered as an internal reasoning processes of large language models. The cool thing is that it is a behvaiour that it discovers how to do this completely on its own. Large language models and neural networks have long been regarded as *black-boxes*, mystical machines that can discover meaningful relationships in text. My favourite sub-field of computer science has always been algorithm design, algorithms are how we as programmers structure our thoughts on how to solve a problem before we instill those thoughts into a computer. But on a more abstract level, algorithms represent the programmer's ideas on solving a problem. A natural question we have yet been able to fully answer is what algorithm or algorithms do LLMs use? The problem LLMs are trying to solve in the case of casual language modelling can be stated as:
 
-The problem statement is incomplete and is missing a key component: **Data**!
+> Given a passage of text predict the token that is most likely to follow the passage using a probability distribution informed by the training dataset.
 
-> Given a passage of text predict the token that is most likely to follow the passage using a probability distribution informed by a given dataset.
+Well you could probably design an algorithm taking into account know semantic relationships in your text or you could think about how to model bigrams or trigrams in your text etc. That sounds fun, but not practical, the problem of language modelling is actually pretty complicated. That's where language models come in, using the tried and true back propogation algorithm we can optimise the model to learn the non-trivial relationships in our input dataset to perform the the task of language modelling. That's great! But wait, what is the algorithm that the model finds? Well if look inside of a model, all you see is a bunch of matrix multiplications and point-wise transformations, that is a bit difficult to understand. 
 
-Well you could probably design an algorithm taking into account know semantic relationships in your text or you could take a statistical approach by looking at bigrams or trigrams in your text etc. That sounds fun, but not practical, what if we could use an algorithm to create our algorithm for us. That's where language models come in, using the tried and true back propogation algorithm we can optimise the model to learn the non-trivial relationships in our input dataset to perform the the task of language modelling. That's great! But wait, what is the algorithm that the model finds? Well if look inside of a model, all you see is a bunch of matrix multiplications and point-wise transformations, that is a bit difficult to understand. 
+Well what if instead of one big algorithm we had a composition of many smaller algorithms that are intelligently interwoven and only executed when needed. According to empirical results, this is actually what LLMs do. If all an LLM is doing is performing matrix multiplication, what do these algorithms actually look like? In LLMs these algorithms are referred to as circuits, which are visualised as computational pathways through a model that are optimised for specific tasks such as arithmetic, planning poems, performing medical diagnoses and many more.
 
-Well due to the range of tasks a language model needs to perform, we know that according to the 'free lunch theorem' there is not really a catch-all algorithm to capture all language modelling tasks. Well what if instead of one big algorithm we had a composition of many smaller algorithms that are intelligently interwoven and only executed when needed. According to empirical results, this is actually what LLMs do. If all an LLM is doing is performing matrix multiplication, what do these algorithms actually look like? In LLMs these algorithms are referred to as circuits, which are visualised as computational pathways through a model that are optimised for specific tasks such as arithmetic, planning poems, performing medical diagnoses and many more.
+## Transformer
+
+Transformers allow us to discover non-trivial relationships between vector embeddings through attention mechanisms. Allowing 
 
 Consider the transformer architecture for large language models. Large language models. The transformer architecture consists of many transformer blocks. A transformer block has three main components:
 1. Attention 
@@ -39,5 +42,7 @@ where
 - $Q = W_Q x$, similarly query vector for token $x_i$ is computed as $q_i = W_Qx_i$
 
 export default function MDXPage({ children }) {
-  return <MdxLayout>{children}</MdxLayout>
+  return <MdxLayout>
+    {children}
+  </MdxLayout>
 }

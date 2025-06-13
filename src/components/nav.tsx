@@ -17,16 +17,19 @@ const Navbar = () => {
         },
         {
             content: "blog",
-            path: "/blog/induction"
+            path: "/blog"
         },
     ];
 
     const [pages, setPages] = useState(homePages);
 
     useEffect(() => {
-        console.log(window.location.pathname);
-        if (window.location.pathname.indexOf("/blog") !== -1) {
+        if (window.location.pathname === "/blog") {
             setPages([]);
+        }
+
+        if (window.location.pathname.indexOf("/blog/") !== -1) {
+            setPages([homePages[2]]);
         }
     }, [])
 
@@ -49,7 +52,7 @@ const Navbar = () => {
             <div className="space-x-5">
                 {pages.map((page, index) => (
                     <Magnetic key={index}>
-                        <Link href={page.path} className="underline-link">
+                        <Link href={page.path} className="underline-link text-[#70747d]">
                             {page.content}
                         </Link>
                     </Magnetic>

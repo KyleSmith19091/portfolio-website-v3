@@ -24,15 +24,15 @@ const Work = () => {
     };
 
     return (
-        <motion.div ref={ref} className="relative h-full">
+        <motion.div ref={ref} className="relative h-screen">
             <motion.div className="absolute w-full h-full top-0 left-0 space-y-4">
                 <h1 className="text-3xl lg:text-6xl">
                     Work
                 </h1>
                 <motion.div
                     variants={parentVariants}
-                    className="grid grid-cols-[repeat(1,1fr)] lg:grid-cols-[repeat(3,1fr)] grid-rows-[repeat(3,1fr)] lg:grid-rows-[repeat(3,1fr)] gap-y-[60px] gap-x-[10px]">
-                        <WorkItem bgColor="db4c44" idx={2} row={1} colStart={1} colEnd={4} name="Mesh.Trade" position="Software Engineer (L3)" time="2024-Now">
+                    className="grid grid-cols-[repeat(1,1fr)] lg:grid-cols-[repeat(3,1fr)] grid-rows-[repeat(3,1fr)] lg:grid-rows-[repeat(2,1fr)] gap-y-[60px] gap-x-[10px]">
+                        <WorkItem bgColor="db4c44" idx={2} name="Mesh.Trade" position="Software Engineer (L3)" time="2024-Now">
                         <div className="space-y-3">
                             <div className="space-y-2">
                                 <h2 className="text-xl font-semibold">Who did I work for?</h2>
@@ -54,7 +54,7 @@ const Work = () => {
                             </div>
                         </div>
                     </WorkItem> 
-                    <WorkItem bgColor="e8a92c" idx={1} row={2} colStart={1} colEnd={3} name="Stemey" position="Lead Web Developer" time="2021-2022">
+                    <WorkItem bgColor="e8a92c" idx={1} name="Stemey" position="Lead Web Developer" time="2021-2022">
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-2xl font-semibold">Who did I work for?</h2>
@@ -72,7 +72,7 @@ const Work = () => {
                             </div>
                         </div>
                     </WorkItem>
-                    <WorkItem bgColor="403c37" idx={0} row={3} colStart={1} colEnd={2} name="Carrus Fleet Management" position="Intern" time="2021-2021">
+                    <WorkItem bgColor="403c37" idx={0} name="Carrus Fleet Management" position="Intern" time="2021-2021">
                         <div className="space-y-3">
                             <div className="space-y-2">
                                 <h2 className="text-xl font-semibold">Who did I work for?</h2>
@@ -107,7 +107,7 @@ interface ParallaxProps {
 function ParallaxText({ children, baseVelocity = 100 }: ParallaxProps) {
     const baseX = useMotionValue(0);
 
-    const x = useTransform(baseX, (v) => `${wrap(-30, 80, v)}%`);
+    const x = useTransform(baseX, (v) => `${wrap(-30, 30, v)}%`);
 
     const directionFactor = useRef<number>(1);
     useAnimationFrame((t, delta) => {
@@ -132,13 +132,9 @@ type WorkItemProps = PropsWithChildren<{
     time: string
     idx: number
     bgColor: string
-    row: number
-    colEnd: number
-    colStart: number
 }>;
 
-const WorkItem = ({ name, position, time, idx, bgColor, row, colEnd, colStart, children }: WorkItemProps) => {
-    const className = `text-white p-3 w-full h-[200px] flex flex-col justify-between relative overflow-hidden`
+const WorkItem = ({ name, position, time, idx, bgColor, children }: WorkItemProps) => {
     const parentVariants = {
         hover: {
             transition: {
@@ -237,16 +233,14 @@ const WorkItem = ({ name, position, time, idx, bgColor, row, colEnd, colStart, c
                 }}
                 style={{
                     backgroundColor: `#${bgColor}`,
-                    gridRow: row,
-                    gridColumnStart: colStart,
-                    gridColumnEnd: colEnd,
                     top: 0,
                     left: 0,
                     position: showDetail ? "fixed" : undefined,
                     width: showDetail ? "100vw" : "100%",
-                    height: showDetail ? "100vh" : "200px",
+                    height: showDetail ? "100vh" : "400px",
                     zIndex: showDetail ? 10 : 0,
                 }}
+                className="row-span-3"
             >
                 {!showDetail ?
                     <motion.div
@@ -254,7 +248,7 @@ const WorkItem = ({ name, position, time, idx, bgColor, row, colEnd, colStart, c
                         animate={showDetail ? "clicked" : "visible"}
                         whileHover={showDetail ? "clicked" : "hover"}
                         variants={parentVariants}
-                        className={className}>
+                        className={`text-white p-3 h-full flex flex-col justify-between relative overflow-hidden`}>
                         <motion.div className="flex justify-between text-xs relative">
                             <motion.p variants={topVariants}>{position}</motion.p>
                             <motion.p variants={topVariants}>{time}</motion.p>
@@ -411,60 +405,9 @@ const WorkDetail = ({ header, position, idx, time, setClicked, children }: WorkD
                 >
                     {children}
                 </motion.div>
-                {/* <motion.div variants={rightHandSideVariant} className="flex rounded-full justify-center w-[0px] h-[0px] lg:w-[300px] lg:h-[300px] bg-white overflow-x-hidden">
-                    <AnimatedSineWave width={300} height={300} />
-                </motion.div> */}
             </motion.div>
 
         </motion.div>
-    );
-};
-
-type AnimateSineWaveProps = {
-    width: number
-    height: number
-}
-
-const generateSineWavePath = (width: number, height: number, phase: number): string => {
-    const amplitude = height / 8;
-    const frequency = 2 * Math.PI / width * 2; // 2 full waves
-    let path = `M -10 ${height / 2}`;
-    for (let x = -10; x <= width; x++) {
-        const y = height / 2 + amplitude * Math.sin(frequency * x + phase);
-        path += ` L ${x} ${y}`;
-    }
-    return path;
-}
-
-const AnimatedSineWave = ({ width, height }: AnimateSineWaveProps) => {
-    const [pathData, setPathData] = useState(() => generateSineWavePath(width, height, 0));
-    const requestRef = useRef<number>(0);
-    const phase = useRef(0);
-
-    useEffect(() => {
-        const animate = () => {
-            phase.current += 0.07; // Speed of propagation
-            const newPath = generateSineWavePath(width, height, phase.current);
-                setPathData(newPath);
-                requestRef.current = requestAnimationFrame(animate);
-        };
-
-        requestRef.current = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(requestRef.current!);
-    }, [width, height]);
-
-    return (
-        <motion.svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-            <motion.path
-                d={pathData}
-                fill="none"
-                stroke="black"
-                strokeWidth={4}
-                // initial={{ pathLength: 0 }}
-                // animate={{ pathLength: 1 }}
-                // transition={{ duration: 2, ease: "easeInOut" }}
-            />
-        </motion.svg>
     );
 };
 
