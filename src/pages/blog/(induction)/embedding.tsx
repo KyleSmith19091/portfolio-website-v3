@@ -1,8 +1,13 @@
+"use client"
+
 type EmbeddingProps = {
     sequence: string;
 };
 
 const Embedding = ({ sequence }: EmbeddingProps) => {
+    if (!sequence) {
+        return null;
+    }
     return (
         <div className="flex items-center justify-center space-x-3 border-2 p-3">
             {sequence.split(" ").map((value, idx) => {

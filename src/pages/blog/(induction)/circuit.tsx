@@ -1,3 +1,5 @@
+"use client"
+
 import Magnetic from "@/components/magnetic";
 import { Background, ReactFlow } from "@xyflow/react";
 

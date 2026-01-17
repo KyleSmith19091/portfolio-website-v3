@@ -11,14 +11,14 @@ const Work = () => {
             transition: {
                 when: "beforeChildren",
                 staggerChildren: 0.3,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
         visible: {
             transition: {
                 when: "beforeChildren",
                 staggerChildren: 0.1,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
     };
@@ -140,21 +140,21 @@ const WorkItem = ({ name, position, time, idx, bgColor, children }: WorkItemProp
             transition: {
                 when: "beforeChildren",
                 staggerChildren: 0.1,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
         visible: {
             transition: {
                 when: "beforeChildren",
                 staggerChildren: 0.1,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
         clicked: {
             transition: {
                 when: "beforeChildren",
                 staggerChildren: 0.1,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
     };
@@ -163,7 +163,7 @@ const WorkItem = ({ name, position, time, idx, bgColor, children }: WorkItemProp
         visible: {
             y: 0,
             transition: {
-                ease: "linear",
+                ease: "linear" as const,
                 duration: 0.6,
             },
         },
@@ -194,7 +194,7 @@ const WorkItem = ({ name, position, time, idx, bgColor, children }: WorkItemProp
         hover: {
             y: 100,
             transition: {
-                ease: "linear",
+                ease: "linear" as const,
                 duration: 0.6,
             },
         },
@@ -207,14 +207,14 @@ const WorkItem = ({ name, position, time, idx, bgColor, children }: WorkItemProp
         visible: {
             y: 100,
             transition: {
-                ease: "linear",
+                ease: "linear" as const,
                 duration: 0.4,
             },
         },
         hover: {
             y: -30,
             transition: {
-                ease: "linear",
+                ease: "linear" as const,
                 duration: 0.4,
             },
         },
@@ -287,7 +287,7 @@ const WorkDetail = ({ header, position, idx, time, setClicked, children }: WorkD
                 when: "beforeChildren",
                 staggerChildren: 0.5,
                 delayChildren: 0.3,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
     };
@@ -299,7 +299,7 @@ const WorkDetail = ({ header, position, idx, time, setClicked, children }: WorkD
             y: 0,
             transition: {
                 duration: 0.8,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
     }
@@ -311,7 +311,7 @@ const WorkDetail = ({ header, position, idx, time, setClicked, children }: WorkD
             y: 0,
             transition: {
                 duration: 0.8,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
             },
         },
     };
@@ -322,7 +322,7 @@ const WorkDetail = ({ header, position, idx, time, setClicked, children }: WorkD
             opacity: 1,
             transition: {
                 duration: 0.9,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
                 when: "beforeChildren",
                 staggerChildren: 0.5,
                 delayChildren: 0.3,
@@ -336,7 +336,7 @@ const WorkDetail = ({ header, position, idx, time, setClicked, children }: WorkD
             opacity: 1,
             transition: {
                 duration: 0.9,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
                 staggerChildren: 0.5,
                 delayChildren: 0.3,
             },

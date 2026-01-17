@@ -26,10 +26,10 @@ export default function SplitText() {
 
             // Animate the words in the h1
             animate(
-                // words,
+                "h1 span",
                 { opacity: [0, 1], y: [10, 0] },
                 {
-                    type: "spring",
+                    type: "spring" as const,
                     duration: 2,
                     bounce: 0,
                     delay: stagger(0.05),

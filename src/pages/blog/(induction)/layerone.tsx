@@ -1,8 +1,13 @@
+"use client"
+
 type EmbeddingProps = {
     sequence: string;
 };
 
 const LayerOne = ({ sequence }: EmbeddingProps) => {
+    if (!sequence) {
+        return null;
+    }
     const splitSequence = sequence.split(" ");
     return (
         <div className="flex items-center justify-center space-x-3 border-2 p-3">

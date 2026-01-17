@@ -18,8 +18,8 @@ const Attention = ({ score, tokens }: AttentionProps) => {
     const ref = useRef(null);
     const { position } = useFollowPointer(ref, undefined);
 
-    if (score.length === 0) {
-        throw new Error("score must be greater than 0");
+    if (!score || score.length === 0 || !tokens) {
+        return null;
     }
 
     return (

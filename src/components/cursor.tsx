@@ -53,18 +53,16 @@ const Cursor = () => {
     }, [])
 
     const variants = {
-        default: { 
-            width: 40, 
+        default: {
+            width: 40,
             height: 40,
             x: elX,
-            y: elY, 
+            y: elY,
             rotate: hoveredElement ? 0 : 45,
             transition: {
-                duration: 0.2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 150, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 150,
+                damping: 15,
                 mass: 0.1
             },
         },
@@ -72,14 +70,12 @@ const Cursor = () => {
             width: width.get(),
             height: height.get(),
             x: elX,
-            y: elY, 
+            y: elY,
             rotate: 0,
             transition: {
-                duration: 0.2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 200, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 200,
+                damping: 15,
                 mass: 0.1
             }
         },
@@ -87,14 +83,12 @@ const Cursor = () => {
             width: width.get(),
             height: height.get(),
             x: elX,
-            y: elY, 
+            y: elY,
             rotate: hoveredElement ? 0 : 45,
             transition: {
-                duration: 0.2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 200, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 200,
+                damping: 15,
                 mass: 0.1
             }
         },
@@ -102,16 +96,14 @@ const Cursor = () => {
             width: width.get(),
             height: height.get(),
             x: elX,
-            y: elY, 
+            y: elY,
             rotate: 0,
             transition: {
-                duration: 0.2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 200, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 200,
+                damping: 15,
                 mass: 0.1
-            } 
+            }
         }
     };
 
@@ -131,53 +123,45 @@ export const Reticule = () => {
     const { position } = useFollowPointer(ref, undefined);
 
     const variants = {
-        default: { 
+        default: {
             x: position.x,
-            y: position.y, 
+            y: position.y,
             transition: {
-                duration: 0.2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 150, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 150,
+                damping: 15,
                 mass: 0.1
             },
         },
         pointer: {
             x: position.x,
-            y: position.y, 
+            y: position.y,
             transition: {
-                duration: 0.2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 200, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 200,
+                damping: 15,
                 mass: 0.1
             }
         },
         clicked: {
             x: position.x,
-            y: position.y, 
+            y: position.y,
             transition: {
-                duration: 0.2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 200, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 200,
+                damping: 15,
                 mass: 0.1
             }
         },
         darkBg: {
             x: position.x,
-            y: position.y, 
+            y: position.y,
             width: "30px",
             height: "30px",
             transition: {
-                duration: 2,
-                ease: "linear",
-                type: "spring", 
-                stiffness: 200, 
-                damping: 15, 
+                type: "spring" as const,
+                stiffness: 200,
+                damping: 15,
                 mass: 0.1
             }
         },
