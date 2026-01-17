@@ -84,7 +84,7 @@ for i in range(12):
 The `get_project` function takes as input the residual stream activation and will then attempt to decode the activation into a string token by feeding the activation directly into the output layer of the model. This is not neccessarily correct and was done as a experiment, but turned out to be a nice approximation of which token the activation currently encodes. The input sequence is strange, but that is intentional, it is just my attempt to confuse the model. I purposefully wanted to use an example where the firstname could refer to a well-known figure such as Steve Jobs or Steve Martin, to see if the induction circuit would overwrite these values when Steve appears later in the input. Below you can see how the tokens were transformed in the model during inference:
 
 <span id="tokenlayer"></span>
-<Residual />
+<Residual key="residual-comp"/>
 <span className="flex justify-center text-sm text-gray-400">Token layer transformations GPT-2</span>
 
 What we are seeing above is how the tokens are transformed through the various transformer blocks. The final token in the list is what the model predicts should follow the highligted token. This gives a small (and not perfect) glimpse into the reasoning process of the model, but we are here for induction circuits. So for the 
@@ -171,7 +171,7 @@ This sequence is first tokenised to get the token IDs, which means it is transla
 
 Each token is then passed to the first layer in the model (the embedding layer), a lookup table which is then used to find the corresponding embedding for a token. Then for simplicity we assume the positional embedding is added, which is responsible for recording the position of the token in the sequence. Effectively creating a second subspace in the embedding vector, which means we get something like the following:
 
-<Embedding sequence="Steve Smith is ... Steve Smith is"/>
+<Embedding sequence="Steve Smith is ... Steve Smith is" key="embedding"/>
 <span className="flex justify-center text-sm text-gray-400">Figure 5: Initial Sequence Embedding</span>
 
 Now these embeddings are given to a transformer to produce a new transformation of the current latent embedding which added back to the residual stream (recall <a href="#figure2">Figure 2</a>). Now we need to take a look at the transformer block again, specifically the attention mechanism (just because that is where the most interesting stuff happens):

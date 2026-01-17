@@ -163,6 +163,10 @@ nav .left:hover #reversek path {
   opacity: 1;
 }
 
+pre {
+  background: #000;
+}
+
 @media only screen and (max-width: 600px) {
   .center-dot {
     width: 0px;
