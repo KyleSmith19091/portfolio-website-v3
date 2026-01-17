@@ -3,7 +3,7 @@ import Magnetic from "./magnetic";
 
 const Footer = () => {
     return (
-        <div className="flex items-center justify-between h-full border-t-1 py-6 border-[#f5f5f5] min-h-[300px]">
+        <div className="flex items-center justify-between h-full border-t py-6 border-[#f5f5f5] min-h-75">
             <div className="flex flex-col items-start">
                 <h1 className="text-4xl">Thank you for visiting!</h1>
                 <ul className="flex items-center space-x-3 text-[#70747d]">
@@ -24,7 +24,7 @@ const Footer = () => {
                 </ul>
             </div>
             <div className="text-[#70747d]">
-                Copyright © 2025 Kyle Smith.
+                Copyright © 2026 Kyle Smith.
             </div>
         </div>
     );
