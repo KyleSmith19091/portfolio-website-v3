@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import localFont from "next/font/local";
 import 'katex/dist/katex.min.css';
 import "./globals.css";
-import Cursor, { Reticule } from "@/components/cursor";
-import Providers from "./providers";
+import ClientLayout from "./client-layout";
 
 const futura = localFont({
   src: [
@@ -45,9 +46,34 @@ const futura = localFont({
   ],
 })
 
-const metadata: Metadata = {
-  title: "Kyle Smith Portfolio",
-  description: "Kyle Smith Portfolio",
+export const metadata: Metadata = {
+  title: "Kyle Smith - Software Engineer & AI Researcher",
+  description: "Portfolio of Kyle Smith, exploring machine learning, transformers, and software engineering.",
+  metadataBase: new URL("https://kylesmith.space"),
+  openGraph: {
+    title: "Kyle Smith - Software Engineer & Researcher",
+    description: "Portfolio of Kyle Smith, exploring machine learning, transformers, and software engineering.",
+    url: "https://kylesmith.space",
+    siteName: "Kyle Smith Portfolio",
+    images: [
+      {
+        url: "https://kylesmith.space/images/me2.png",
+        width: 1200,
+        height: 630,
+        alt: "Kyle Smith",
+      },
+    ],
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kyle Smith - Software Engineer & AI Researcher",
+    description: "Portfolio of Kyle Smith, exploring machine learning, transformers, and software engineering.",
+    images: ["https://kylesmith.space/images/me1.jpg"],
+  },
+  keywords: ["Kyle Smith", "software engineer", "AI researcher", "machine learning", "transformers", "portfolio"],
+  authors: [{ name: "Kyle Smith" }],
 };
 
 export default function RootLayout({
@@ -58,18 +84,14 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-        <title>Kyle Smith Portfolio</title>
-        <meta name="description" content="Kyle Smith Portfolio" />
-      </head>
       <body
         className={`${futura.className} antialiased min-h-screen m-0`}
       >
-        <Providers>
-          <Cursor />
-          <Reticule />
+        <ClientLayout>
           {children}
-        </Providers>
+        </ClientLayout>
+        <Analytics/>
+        <SpeedInsights/>
       </body>
     </html>
   );

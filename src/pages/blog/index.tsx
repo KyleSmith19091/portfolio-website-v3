@@ -1,33 +1,45 @@
 import "../../app/globals.css";
-import RootLayout from "@/app/layout";
 import Magnetic from "@/components/magnetic";
 import Navbar from "@/components/nav";
 import Link from "next/link";
+import Head from "next/head";
+import { getAllBlogPosts } from "@/lib/blog-metadata";
 
-const blogs = [
-    {
-        name: "Induction Circuits",
-        path: "induction",
-        description: "Ever wonder how LLMs discover context? Well they use induction.",
-        date: new Date("2025-05-05")
-    },
-];
+const blogs = getAllBlogPosts();
 
 const Blog = () => {
     return (
-        <RootLayout>
+        <>
+            <Head>
+                <title>Blog - Kyle Smith</title>
+                <meta name="description" content="Technical blog posts about machine learning, transformers, and software engineering" />
+                <meta property="og:title" content="Blog - Kyle Smith" />
+                <meta property="og:description" content="Technical blog posts about machine learning, transformers, and software engineering" />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content="https://kylesmith.space/blog" />
+                <meta property="og:image" content="https://kylesmith.space/blog/induction/gpt2.png" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="Blog - Kyle Smith" />
+                <meta name="twitter:description" content="Technical blog posts about machine learning, transformers, and software engineering" />
+                <meta name="twitter:image" content="https://kylesmith.space/blog/induction/gpt2.png" />
+            </Head>
             <div className="container mx-auto space-y-6">
                 <Navbar />
                 <h1 className="text-5xl lg:text-7xl text-center">Personal Blog</h1>
                 <div className="grid grid-cols-[repeat(1,1fr)] lg:grid-cols-[repeat(3,1fr)] gap-x-3 gap-y-3">
                     {blogs.map((blog) => {
+                        const formattedDate = new Intl.DateTimeFormat("en-US", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                        }).format(blog.date);
                         return (
-                            <Link key={blog.name} href={`/blog/${blog.path}`}>
+                            <Link key={blog.slug} href={`/blog/${blog.slug}`}>
                                 <Magnetic>
                                     <div className="bg-[#f2f4f5] p-3 relative space-y-4">
                                         <div>
-                                            <h2 className="text-3xl">{blog.name}</h2>
-                                            <p className="text-sm text-[#70747d]">{blog.date.getFullYear()}/{blog.date.getMonth()}/{blog.date.getDay()}</p>
+                                            <h2 className="text-3xl">{blog.title}</h2>
+                                            <p className="text-sm text-[#70747d]">{formattedDate}</p>
                                         </div>
                                         <p className="text-[#70747d]">{blog.description}</p>
                                     </div>
@@ -37,7 +49,7 @@ const Blog = () => {
                     })}
                 </div>
             </div>
-        </RootLayout>
+        </>
     );
 }
 

@@ -10,6 +10,15 @@ import Embedding from './(induction)/embedding';
 import LayerOne from './(induction)/layerone';
 import data from "./(induction)/attention_data.json";
 
+export const meta = {
+  title: "Induction Circuits",
+  description: "Ever wonder how LLMs discover context? Well they use induction. Explore induction circuits in GPT-2 and how transformers implement this key internal mechanism.",
+  ogImage: "/blog/induction/gpt2.png",
+  date: "2025-03-01",
+  author: "Kyle Smith",
+  keywords: ["induction", "circuits", "transformers", "attention", "GPT-2", "LLM", "machine learning"],
+};
+
 # Induction Circuits
 <span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2025-03-01</span>
 <hr />
@@ -208,7 +217,7 @@ Also this is not necessarily the first layer in a model such as GPT-2, as we saw
 So the strange part here is the final matrix multiplication and the value matrix (full calculation left out for simplicity) where the subspace *I follow Steve* is read and through the multiplication with the attention score matrix it transforms that subspace into a new *xxx is after me* subspace. So it is interesting how these two values encode a whole new piece of information.
 
 export default function MDXPage({ children }) {
-  return <MdxLayout>
+  return <MdxLayout meta={meta}>
     {children}
   </MdxLayout>
 }
