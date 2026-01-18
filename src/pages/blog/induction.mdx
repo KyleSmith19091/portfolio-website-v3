@@ -2,7 +2,6 @@ import MdxLayout from '../../components/mdx';
 import Magnetic from '../../components/magnetic';
 import Spinner from '../../components/spinner';
 import Code from '../../components/code';
-import Math from '../../components/math';
 import Attention from './(induction)/attention';
 import Residual from './(induction)/residual';
 import VectorProjection from './(induction)/vectordecomposition';
@@ -42,7 +41,7 @@ To understand induction circuits, we first need to take a deeper look at the tra
 ![GPT2](/blog/induction/gpt2.png)
 <span className="flex justify-center text-sm text-gray-400">Figure 1: GPT-2 Transformer</span>
 
-Let **A** represent the operation of calculating the attention scores and normalising them (<Math>{`softmax(\\frac{QK}{\\sqrt{d_k}})`}</Math>).
+Let **A** represent the operation of calculating the attention scores and normalising them ($softmax(\frac{QK}{\sqrt{d_k}})$).
 
 The key component that differentiates transformer models from typical deep neural networks are the attention blocks. In a decoder-only model like GPT-2 they empower the model to learn uni-directional relationships between tokens, allowing the model to relate a token to another token earlier in the sequence. This is what allows models to learn how to perform induction during the prediction process. However, the real magic lies in the residual stream, we will see the residual stream plays crucial role in the propogation of information through the layers of the model. The residual stream is more commonly referred to as a skip-connection when talking about classic deep-learning models such as deep neural nets or CNNs. It was simply a technique to facilitate stable gradients through the network during optimisation. However in the context of transformers, it plays a much more abstract role, as argued in the paper *A Mathematical Framework for Transformer Circuits*, the residual stream is actually the main mechanism in which signals are carried through the model, rather than the transformer blocks themselves. For a real-world analogy the residual stream can be thought of as the conveyor belt in the assembly line and the attention heads as the stations where specific parts are added to whatever is fed into it. The residual stream can be thought of as the enrichment of the original token embedding, where after enrichment the token is finally morphed into the predicted token. 
 
@@ -122,7 +121,7 @@ def prefix_matching_head_detector(cache: ActivationCache, original_token_idx, pr
     return detected
 ```
 
-The above function will find all heads where the head assigned a value greater than the configured threshold value <Math>0.6</Math> between the pair of tokens at the indices `original_token_idx` and `prev_token_idx`. It will output a list of the form <Math>[0.6 - 0.3, 1.2 - 0.5, 3.3 - 0.9]</Math> where the value before the '.' is the layer index and value after is the head index. The value after the dash is the attention value.
+The above function will find all heads where the head assigned a value greater than the configured threshold value $0.6$ between the pair of tokens at the indices `original_token_idx` and `prev_token_idx`. It will output a list of the form $[0.6 - 0.3, 1.2 - 0.5, 3.3 - 0.9]$ where the value before the '.' is the layer index and value after is the head index. The value after the dash is the attention value.
 Running the code above on the activation values from our chosen sequence to find the prefix matching heads, i.e. the heads that assigned a high attention score to the first occurrence of *Smith* when trying to predict what comes after the second occurrence of *Steve*, we get:
 
 ```
@@ -181,31 +180,33 @@ Now these embeddings are given to a transformer to produce a new transformation 
 
 So when processing the embeddings of a sequence, each token is projected into three different spaces:
 
-1. The query space with the matrix <Math>M_Q</Math>, where the resulting matrix after projection is denoted as <Math>Q</Math>.
-2. The key space with the matrix <Math>M_K</Math>, where the resulting matrix after projection is denoted as <Math>K</Math>.
-3. The value space with the matrix <Math>M_V</Math>, where the resulting matrix after projection is denoted as <Math>V</Math>.
+1. The query space with the matrix $$M_Q$$, where the resulting matrix after projection is denoted as $$Q$$.
+2. The key space with the matrix $$M_K$$, where the resulting matrix after projection is denoted as $$K$$.
+3. The value space with the matrix $$M_V$$, where the resulting matrix after projection is denoted as $$V$$.
 
-Each matrix holds a representation for each token in the sequence. So the dimensionality of each matrix will usually have dimensionality <Math>S \times d_k</Math> where <Math>S</Math> is the length of the sequence and <Math>d_k</Math> is the head size (usually equal to the dimension as the residual stream). The equation for a simple attention mechanism can be given as:
+Each matrix holds a representation for each token in the sequence. So the dimensionality of each matrix will usually have dimensionality $S \times d_k$ where $S$ is the length of the sequence and $$d_k$$ is the head size (usually equal to the dimension as the residual stream). The equation for a simple attention mechanism can be given as:
 
 <div align="center">
-  <Math>{`softmax(\\frac{QK}{\\sqrt{d_k}})V`}</Math>
+
+$softmax(\frac{QK}{\sqrt{d_k}})V$
+
 </div>
 
-The numerator <Math>QK</Math> represents the attention score calculation, an attention score is a numeric value indicating how relevant a previous token is to the current token.  
+The numerator $QK$ represents the attention score calculation, an attention score is a numeric value indicating how relevant a previous token is to the current token.  
 To understand what this means, let's look at a simplified version to understand what the matrix multiplication is actually doing:
 
 ![Query-Key Calculation](/blog/induction/query-key.png)
 <span className="flex justify-center text-sm text-gray-400">Figure 7: Query Key Calculation (Snippet)</span>
 
-In Figure 7 we have a Query and Key matrix for the first three words in our example sequence. <Math>d_k</Math> has an embedding length of 3 and an important caviat is that in auto-regressive LLM models such as the GPT-series models, we can only attend to tokens that appear *before* the current token. So *Smith* can only attend to *Steve* in this toy-example. What we are checking is if the query embedding for *Smith* is relevant to the key embedding *Steve* (imagine how a DB query might use a key in an index). This gives as a single attention score, this is repeated for every token in the sequence. This gives us an attention matrix, where a single element tells us how relevant a token is to another token. The $softmax$ operation is applied so that the attention scores are clamped to be between 0 and 1, where a value closer to 1 indicates higher relevance.
+In Figure 7 we have a Query and Key matrix for the first three words in our example sequence. $$d_k$$ has an embedding length of 3 and an important caviat is that in auto-regressive LLM models such as the GPT-series models, we can only attend to tokens that appear *before* the current token. So *Smith* can only attend to *Steve* in this toy-example. What we are checking is if the query embedding for *Smith* is relevant to the key embedding *Steve* (imagine how a DB query might use a key in an index). This gives as a single attention score, this is repeated for every token in the sequence. This gives us an attention matrix, where a single element tells us how relevant a token is to another token. The $\text{softmax}$ operation is applied so that the attention scores sum up to 1, where a value closer to 1 indicates higher relevance between token pairs.
 
-So let's stop for a moment and think what the attention calculation is really trying to achieve. This calculation captures the relationships between tokens, the type of relationships might be syntactical such as relating a determiner with a noun, or more abstract relations such as "dog" relating to "animal". Each layer might be responsible capture a different set of relationships. For the induction circuit we simply want to attend to the token before the current token. The type of relationship extracted is parameterised by the matrices <Math>M_Q</Math> and <Math>M_K</Math>. So in the context of the induction circuit, one of the types of relationships that might cause a high attention score is assigning a high score to a token that is directly before the current token. For example, a hypothetical attention score matrix might look like:
+So let's stop for a moment and think what the attention calculation is really trying to achieve. This calculation captures the relationships between tokens, the type of relationships might be syntactical such as relating a determiner with a noun, or more abstract relations such as "dog" relating to "animal". Each layer might be responsible capture a different set of relationships. For the induction circuit we simply want to attend to the token before the current token. The type of relationship extracted is parameterised by the matrices $$M_Q$$ and $$M_K$$. So in the context of the induction circuit, one of the types of relationships that might cause a high attention score is assigning a high score to a token that is directly before the current token. For example, a hypothetical attention score matrix might look like:
 
 ![Attention Matrix Example](/blog/induction/attention-ex.png)
 
 So in this case *Smith* has a relationship with *Steve*, so this will cause this piece of information to be encoded into a subspace when multiplied with the Value matrix.
 
-The attention matrix is then multiplied with the Value matrix <Math>V</Math>. Since the attention matrix values are between 0 and 1, we can think of the attention matrix is exciting or masking certain subspaces of the value matrix embeddings. This can be visualised as information being added and removed from subspaces in the Value matrix. So in a perfect world the embeddings after the first layer in an induction circuit will look like the following:
+The attention matrix is then multiplied with the Value matrix $$V$$. Since the attention matrix values are between 0 and 1, we can think of the attention matrix is exciting or masking certain subspaces of the value matrix embeddings. This can be visualised as information being added and removed from subspaces in the Value matrix. So in a perfect world the embeddings after the first layer in an induction circuit will look like the following:
 
 <LayerOne sequence="Steve Smith is ... Steve Smith is"/>
 
@@ -215,6 +216,20 @@ Also this is not necessarily the first layer in a model such as GPT-2, as we saw
 <span className="flex justify-center text-sm text-gray-400">Figure 8: Final Induction Circuit Step</span>
 
 So the strange part here is the final matrix multiplication and the value matrix (full calculation left out for simplicity) where the subspace *I follow Steve* is read and through the multiplication with the attention score matrix it transforms that subspace into a new *xxx is after me* subspace. So it is interesting how these two values encode a whole new piece of information.
+
+## Conclusion
+
+Induction circuits offer a concrete example of how transformers go beyond surface-level pattern matching and implement algorithmic behavior internally. What initially looks like a simple “copy the next token” trick turns out to be a coordinated interaction between attention heads, learned projections, and the residual stream acting as a shared communication channel.
+
+Two themes stand out.
+
+First, the residual stream is the backbone of computation. Rather than being a passive skip connection, it behaves like a continuously evolving latent state where information is accumulated, transformed, and selectively preserved across layers. Attention heads don’t own information — they write to and read from the residual stream, enriching it with increasingly task-relevant structure.
+
+Second, induction is not localized to a single component. Prefix matching and copying emerge across multiple layers and heads, often redundantly. This redundancy likely contributes to robustness, but it also explains why interpreting models is difficult: information is distributed, superposed, and sometimes partially overwritten rather than cleanly modular.
+
+While this analysis focused on exact-match induction in GPT-2, the same principles extend to more complex behaviors — fuzzy matching, abstraction, and multi-step reasoning. Induction circuits are best thought of not as a special-case hack, but as one instance of a broader pattern: transformers discovering reusable algorithms through gradient descent.
+
+Understanding these mechanisms doesn’t just satisfy curiosity. It gives us leverage — for interpretability, debugging, and eventually for designing models that are more transparent and controllable by construction.
 
 export default function MDXPage({ children }) {
   return <MdxLayout meta={meta}>

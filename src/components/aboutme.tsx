@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import ImageCarousel3D from "./imagecarousel";
 
 const AboutMe = () => {
-    const images = ["/images/me1.jpg", "/images/me2.png", "/images/me3.jpg", "/images/me4.jpg", "/images/me5.jpg", "/images/me6.jpg"]
+    const images = ["/images/me1.jpg", "/images/me2.png", "/images/me3.jpg", "/images/me4.jpg", "/images/me5.jpg", "/images/me6.jpg", "/images/me7.jpg"]
     return (
         <div className="space-y-5 h-full">
             <h1 className="text-3xl lg:text-6xl">
@@ -26,13 +26,13 @@ const AboutMe = () => {
                         had on merely scratched the surface of: <strong>Computer Science</strong>. My years at university really
                         allowed me to explore and envelop myself into this new world, allowing me to experiment and learn to my
                         heart&apos;s content. It is also at University where I developed a love for researching and exploring
-                        the fundamental problems of Computer Science.
+                        the fundamental problems of Computer Science. I even developed and published my own <a target="#" href="https://link.springer.com/chapter/10.1007/978-3-031-64881-6_13" className="underline font-bold">algorithm</a>.
                         <br />
                         <br />
                         After receiving my bachelor&apos;s degree and honour&apos;s degree I decided to venture into a scary new
                         world: <strong>The Software Industry</strong>.
                     </motion.p>
-                    <div className="w-full lg:w-1/2 h-[300px] lg:h-[400px]">
+                    <div className="w-full lg:w-1/2 h-75 lg:h-100">
                         <ImageCarousel3D imageUrls={images} />
                     </div>
                 </div>

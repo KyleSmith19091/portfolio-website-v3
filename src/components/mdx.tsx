@@ -9,6 +9,7 @@ import Head from "next/head";
 import Providers from "@/app/providers";
 import { futura } from "@/lib/fonts";
 import Cursor, { Reticule } from "./cursor";
+import Footer from "./footer";
 
 interface MdxLayoutProps {
     children: React.ReactNode;
@@ -66,6 +67,7 @@ export default function MdxLayout({ children, meta }: MdxLayoutProps) {
                         <Spinner progress={scrollYProgress} className="fixed bottom-0 right-0" />
                         {children}
                     </article>
+                    <Footer />
                 </div>
             </Providers>
         </>
