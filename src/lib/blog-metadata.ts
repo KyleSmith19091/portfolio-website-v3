@@ -18,6 +18,15 @@ export const blogPosts: BlogPost[] = [
     ogImage: "/blog/induction/gpt2.png",
     keywords: ["induction", "circuits", "transformers", "attention", "GPT-2", "LLM", "machine learning"],
   },
+  {
+    "slug": "lsm-db/day1",
+    title: "LSM DB Build Day 1",
+    description: "Journal for building a Log-Structured-Merge Tree Storage Engine in Rust",
+    date: new Date("2026-02-01"),
+    author: "Kyle Smith",
+    ogImage: "/blog/induction/gpt2.png",
+    keywords: ["lsm", "db", "database"], 
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {

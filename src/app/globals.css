@@ -164,7 +164,9 @@ nav .left:hover #reversek path {
 }
 
 pre {
-  background: #000;
+  background: white;
+  color: black;
+  border: 2px solid black;
 }
 
 @media only screen and (max-width: 600px) {
