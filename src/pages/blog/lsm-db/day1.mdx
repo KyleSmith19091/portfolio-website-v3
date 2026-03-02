@@ -16,10 +16,10 @@ import MdxLayout from '../../../components/mdx';
 This will be a sort of journal while I implement an LSM-backed storage engine following this <a href="https://skyzh.github.io/mini-lsm/00-preface.html">guide</a>. Each blog will just discuss some of the implementation details and optimisations I think are cool. A storage engine is the core component of a Database Management System (DBMS) and it is responsible for handling the CRUD operations for the data stored on physical devices or in memory. <a href="https://source.wiredtiger.com/">WiredTiger</a> is the default storage engine used with MongoDB and at its core it is simply a key/value store, its core data structure is a B-tree. A B-tree is a self-balancing tree that maintains sorted data and allows $O(log n)$ inserts and searches. However, if you extend your scope beyond amortized analysis, B-trees are more efficient for reads than writes. One of the issues is that writes are done in place, which requires rebalancing, node splitting and merging operations, this makes concurrency more complicated due to the complex locking required. Skipping over the many optimisations that can be made (see what PostgreSQL does <a href="https://github.com/postgres/postgres/tree/master/src/backend/access/nbtree">here</a>), enter the LSM-tree or log-structured-merge tree. 
 
 ### Sections
-<a href="#1">What is an LSM-tree?</a>
-<a href="#2">Memtable</a>
-<a href="#3">LSM Storage Engine State</a>
-<a href="#4">Concurrency</a>
+- <a href="#1">What is an LSM-tree?</a>
+- <a href="#2">Memtable</a>
+- <a href="#3">LSM Storage Engine State</a>
+- <a href="#4">Concurrency</a>
 
 <hr/>
 
