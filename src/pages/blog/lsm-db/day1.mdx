@@ -15,8 +15,15 @@ import MdxLayout from '../../../components/mdx';
 
 This will be a sort of journal while I implement an LSM-backed storage engine following this <a href="https://skyzh.github.io/mini-lsm/00-preface.html">guide</a>. Each blog will just discuss some of the implementation details and optimisations I think are cool. A storage engine is the core component of a Database Management System (DBMS) and it is responsible for handling the CRUD operations for the data stored on physical devices or in memory. <a href="https://source.wiredtiger.com/">WiredTiger</a> is the default storage engine used with MongoDB and at its core it is simply a key/value store, its core data structure is a B-tree. A B-tree is a self-balancing tree that maintains sorted data and allows $O(log n)$ inserts and searches. However, if you extend your scope beyond amortized analysis, B-trees are more efficient for reads than writes. One of the issues is that writes are done in place, which requires rebalancing, node splitting and merging operations, this makes concurrency more complicated due to the complex locking required. Skipping over the many optimisations that can be made (see what PostgreSQL does <a href="https://github.com/postgres/postgres/tree/master/src/backend/access/nbtree">here</a>), enter the LSM-tree or log-structured-merge tree. 
 
+### Sections
+<a href="#1">What is an LSM-tree?</a>
+<a href="#2">Memtable</a>
+<a href="#3">LSM Storage Engine State</a>
+<a href="#4">Concurrency</a>
+
 <hr/>
 
+<span id="1"></span>
 ## What is an LSM-tree?
 An LSM-tree is a multi-level, on-disk data structure that maintains a sorted list of keys. It consists of two top-level components:
 1. Memtable - in-memory data structure
@@ -34,6 +41,7 @@ The skip list gives you multiple ways to search for a particular key by using ex
 
 <hr/>
 
+<span id="2"></span>
 ## Memtable
 
 The first thing to implement is the memtable as it is where all reads and writes will go through (SSTs come later). The memtable struct looks like the following:
@@ -80,7 +88,9 @@ pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
 
 <hr/>
 
-## LSM Storage State
+<span id="3"></span>
+## LSM Stoirage State
+
 The memtable forms part of the current LSM storage engine state, it is where writes always go and it is the first place where we check when searching for a specific key. The state of the engine is fully described as follows:
 ```rust
 pub struct LsmStorageState {
@@ -97,11 +107,13 @@ pub struct LsmStorageState {
     pub sstables: HashMap<usize, Arc<SsTable>>,
 }
 ```
+<span className="flex justify-center text-sm text-gray-400">Snippet 3: LSM Storage Engine State</span>
 
 Currently we only care about `memtable` and `imm_memtables`, the immutable memtables are full and will eventually be flushed to disk.
 
 <hr/>
 
+<span id="4"></span>
 ## Concurrency in storage engine
 
 Now we get to the interesting stuff, the interface for the LSM storage engine is given by the following struct:
@@ -120,6 +132,7 @@ pub(crate) struct LsmStorageInner {
     pub(crate) compaction_filters: Arc<Mutex<Vec<CompactionFilter>>>,
 }
 ```
+<span className="flex justify-center text-sm text-gray-400">Snippet 4: LSM Storage State Wrapper</span>
 
 The only fields I need to interact with at this point are `state` and `state_lock`. To understand the reasoning behind the mutex and read-write lock protecting these fields we need to look at the write path:
 
@@ -143,6 +156,8 @@ pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
   self.try_freeze(size)
 }
 ```
+<span className="flex justify-center text-sm text-gray-400">Snippet 5: LSM Storage Engine Write Path</span>
+
 So the most interesting part (for me at least) in this implementation is that we can take a read lock to perform a write operation. This is due to the memtable being itself thread-safe with the use of atomics, so the hot-path for writing is pretty cheap. Now the real concurrency challenges come into play when we need to freeze the memtable.
 
 ```rust
@@ -169,6 +184,8 @@ fn try_freeze(&self, estimated_size: usize) -> Result<()> {
   Ok(())
 }
 ```
+<span className="flex justify-center text-sm text-gray-400">Snippet 6: LSM Storage Engine Memtable Freeze Checking</span>
+
 There are a few interesting things to look at here, first is the double-locking pattern. We do a cheap comparison between the estimated size and the target SST size to determine if the memtable has reached capacity and should be frozen. If this is the case then the the executing thread will attempt to acquire the `state_lock`, which is a plain mutex and marks the start of a critical section. Now the key thing to realise here is that at this point we are actually not blocking interaction with the memtable, even when taking the read lock. So technically during this function other threads might be reading or updating the memtable. I also want to highlight a really nice pattern that Rust showcases here with the stack_lock being passed to the `force_freeze_memtable` function. The type of the function local variable `state_lock` is a `MutexGuard`. Usually you can access the data is protecting by dereferencing it, but in this case it's not protecting a specific piece of data. We pass it to the `force_freeze_memtable` as a kind of promise that: "I have the lock to ensure the state struct is not going to change". 
 
 ```rust
@@ -193,6 +210,7 @@ pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -
     Ok(())
 }
 ```
+<span className="flex justify-center text-sm text-gray-400">Snippet 7: LSM Storage Engine Memtable Freezing Procedure</span>
 
 The `force_freeze_memtable` is responsible for moving the current memtable to the frozen memtable list and creating the new memtable where data will be written to. Also notice that we don't use the mutex guard, but we've encoded in the contract of this function that it needs to execute under a mutex (that's really cool!).
 
