@@ -23,6 +23,7 @@ We've reached the second installment of the LSM storage engine build (see <a hre
 - <a href="#4">Scan Implementation</a>
 <hr/>
 
+<span id="1"></span>
 ## Storage Iterator Trait
 
 Before we get into the definition of the iterator trait, we look at an interesting property of the storage engine. When we need to perform a read using a given key we need to go through multiple storage layers:
@@ -106,6 +107,7 @@ Iterator
 
 This allows implementations of this trait to return borrows to the keys or values being iterated over. Which it can safely do since the compiler will ensure that the iterator lives longer than those borrows and this in turn ensures that the borrowed references point to valid data that will not be deallocated.
 
+<span id="2"></span>
 ---
 ## Memtable Iterator
 
@@ -244,6 +246,7 @@ impl StorageIterator for MemTableIterator {
 
 One important note is that `entry_to_item` looks like it is actually copying the data, but `Bytes` is effectively `Arc<[u8]>` so it is just copying the reference.
 
+<span id="3"></span>
 ---
 ## Merge Iterator Implementation
 
@@ -486,6 +489,7 @@ if let Some(mut inner_iter) = self.iters.peek_mut() {
 
 Now with this in hand we can finally implement the `scan` method.
 
+<span id="4"></span>
 ---
 ## Scan Implementation
 
