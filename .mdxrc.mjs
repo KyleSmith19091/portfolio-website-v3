@@ -1,6 +1,7 @@
 import { visit } from 'unist-util-visit';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
+import rehypePrettyCode from 'rehype-pretty-code';
 
 function remarkCitation() {
   return (tree) => {
@@ -47,5 +48,11 @@ function remarkCitation() {
 
 export default {
   remarkPlugins: [remarkMath, remarkCitation],
-  rehypePlugins: [rehypeKatex]
+  rehypePlugins: [
+    [rehypePrettyCode, {
+      theme: 'rose-pine',
+      keepBackground: true,
+    }],
+    rehypeKatex
+  ]
 };

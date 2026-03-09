@@ -1,7 +1,7 @@
 "use client"
 
 import { CursorVariant } from "@/context/cursor";
-import { createContext, useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useState } from "react";
 
 export interface ICursorContext {
     cursorVariant: CursorVariant;
@@ -40,7 +40,7 @@ const Providers = ({ children }: Readonly<{
     return(
         <CursorContext.Provider value={{ cursorVariant, setCursorVariant, hoveredElement, setHoveredElement, clearHoveredElement }}>
             {children}
-        </CursorContext.Provider>        
+        </CursorContext.Provider>
     );
 };
 

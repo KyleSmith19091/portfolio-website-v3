@@ -89,7 +89,7 @@ pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
 <hr/>
 
 <span id="3"></span>
-## LSM Stoirage State
+## LSM Storage State
 
 The memtable forms part of the current LSM storage engine state, it is where writes always go and it is the first place where we check when searching for a specific key. The state of the engine is fully described as follows:
 ```rust

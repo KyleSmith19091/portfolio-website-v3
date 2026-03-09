@@ -12,20 +12,40 @@ export const blogPosts: BlogPost[] = [
   {
     slug: "induction",
     title: "Induction Circuits",
-    description: "Ever wonder how LLMs discover context? Well they use induction.",
+    description:
+      "Ever wonder how LLMs discover context? Well they use induction.",
     date: new Date("2025-03-01"),
     author: "Kyle Smith",
     ogImage: "/blog/induction/gpt2.png",
-    keywords: ["induction", "circuits", "transformers", "attention", "GPT-2", "LLM", "machine learning"],
+    keywords: [
+      "induction",
+      "circuits",
+      "transformers",
+      "attention",
+      "GPT-2",
+      "LLM",
+      "machine learning",
+    ],
   },
   {
-    "slug": "lsm-db/day1",
+    slug: "lsm-db/day1",
     title: "LSM DB Build Day 1",
-    description: "Journal for building a Log-Structured-Merge Tree Storage Engine in Rust",
+    description:
+      "Journal for building a Log-Structured-Merge Tree Storage Engine in Rust",
     date: new Date("2026-02-01"),
     author: "Kyle Smith",
-    ogImage: "/blog/induction/gpt2.png",
-    keywords: ["lsm", "db", "database"], 
+    ogImage: "/blog/lsm-db/day1.png",
+    keywords: ["lsm", "db", "database"],
+  },
+  {
+    slug: "lsm-db/day2",
+    title: "LSM DB Build Day 2",
+    description:
+      "Journal for building a Log-Structured-Merge Tree Storage Engine in Rust",
+    date: new Date("2026-02-05"),
+    author: "Kyle Smith",
+    ogImage: "/blog/lsm-db/day1.png",
+    keywords: ["lsm", "db", "database"],
   },
 ];
 

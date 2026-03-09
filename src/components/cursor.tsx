@@ -10,6 +10,7 @@ const Cursor = () => {
     const {cursorVariant, hoveredElement, setCursorVariant } = useContext(CursorContext);
     const { position } = useFollowPointer(ref, hoveredElement);
     const [clicked, setClicked] = useState(false);
+    const [, setScrollUpdate] = useState(0);
 
     const width = useTransform(() => {
         if (!hoveredElement) {
@@ -52,7 +53,21 @@ const Cursor = () => {
         }
     }, [])
 
-    const variants = {
+    useEffect(() => {
+        const handleScroll = () => {
+            if (hoveredElement) {
+                // Force cursor to recalculate position during scroll
+                setScrollUpdate(prev => prev + 1);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, [hoveredElement])
+
+    const getVariants = () => ({
         default: {
             width: 40,
             height: 40,
@@ -105,10 +120,10 @@ const Cursor = () => {
                 mass: 0.1
             }
         }
-    };
+    });
 
     return (
-        <motion.div ref={ref} className="box-container" animate={cursorVariant} variants={variants}>
+        <motion.div ref={ref} className="box-container" animate={cursorVariant} variants={getVariants()}>
             <motion.div className="corner top-left"></motion.div>
             <motion.div className="corner top-right"></motion.div>
             <motion.div className="corner bottom-left"></motion.div>

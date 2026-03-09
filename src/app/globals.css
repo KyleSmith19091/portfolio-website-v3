@@ -2,116 +2,123 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #ffffff;
+    --foreground: #171717;
 }
 
 html {
-  scroll-behavior: smooth;
-  cursor: none;
+    scroll-behavior: smooth;
+    cursor: none;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+    background: var(--background);
+    color: var(--foreground);
 }
 
 a {
-  cursor: none;
+    cursor: none;
 }
 
 .react-flow__pane.draggable {
-  cursor: none !important;
+    cursor: none !important;
 }
 
 .react-flow__node.draggable {
-  cursor: none !important;
+    cursor: none !important;
 }
 
 /* Navigation */
 nav .left:hover #reversek path {
-  stroke-dasharray: 200;
-  stroke-width: 3;
-  fill: none;
-  animation: dash 5s linear;
+    stroke-dasharray: 200;
+    stroke-width: 3;
+    fill: none;
+    animation: dash 5s linear;
 }
 
 @keyframes dash {
-  to {
-    stroke-dashoffset: 1000;
-  }
+    to {
+        stroke-dashoffset: 1000;
+    }
 }
 
 #reversek path {
-  fill: black;
-  stroke: black;
-  transition: fill 0.8s;
+    fill: black;
+    stroke: black;
+    transition: fill 0.8s;
 }
 
 .underline-link::before {
-  content: "";
-  position: absolute;
-  display: block;
-  width: 0%;
-  height: 1px;
-  bottom: 0;
-  left: 0;
-  background-color: black;
-  transition: width 0.3s ease;
+    content: "";
+    position: absolute;
+    display: block;
+    width: 0%;
+    height: 1px;
+    bottom: 0;
+    left: 0;
+    background-color: black;
+    transition: width 0.3s ease;
 }
 
 .underline-link:hover::before {
-  width: 100%;
+    width: 100%;
 }
 
 .underline-link {
-  position: relative; 
+    position: relative;
+}
+
+/* Cursor z-index fix */
+article {
+    position: relative;
+    z-index: 1;
 }
 
 /* Scroll hide */
 /* width */
 ::-webkit-scrollbar {
-  width: 0px;
+    width: 0px;
 }
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+    background: #f1f1f1;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: #888;
+    background: #888;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+    background: #555;
 }
 
 .box-container {
-  position: fixed; 
-  pointer-events: none;
-  contain: layout;
-  opacity: 1;
+    position: fixed;
+    pointer-events: none;
+    contain: layout;
+    opacity: 1;
+    z-index: 9999999;
 }
 
 /* Style for the corner markers */
 .box-container::before,
 .box-container::after {
-  content: ''; 
-  contain: layout;
-  position: fixed; 
-  width: 20px; 
-  height: 20px;
-  border-color: transparent; 
-  border-style: solid; 
-  pointer-events: none;
+    content: "";
+    contain: layout;
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border-color: transparent;
+    border-style: solid;
+    pointer-events: none;
 }
 
 /* Top-left corner */
@@ -122,61 +129,97 @@ nav .left:hover #reversek path {
 }
 
 .box-container .corner {
-  position: fixed;
-  width: 10px;
-  height: 10px;
-  border-color: black;
-  border-style: solid;
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    border-color: black;
+    border-style: solid;
 }
 
 .box-container .top-left {
-  top: 0;
-  left: 0;
-  border-width: 2px 0 0 2px;
+    top: 0;
+    left: 0;
+    border-width: 2px 0 0 2px;
 }
 
 .box-container .top-right {
-  top: 0;
-  right: 0;
-  border-width: 2px 2px 0 0;
+    top: 0;
+    right: 0;
+    border-width: 2px 2px 0 0;
 }
 
 .box-container .bottom-left {
-  bottom: 0;
-  left: 0;
-  border-width: 0 0 2px 2px;
+    bottom: 0;
+    left: 0;
+    border-width: 0 0 2px 2px;
 }
 
 .box-container .bottom-right {
-  bottom: 0;
-  right: 0;
-  border-width: 0 2px 2px 0;
+    bottom: 0;
+    right: 0;
+    border-width: 0 2px 2px 0;
 }
 
 .center-dot {
-  position: fixed;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%; 
-  z-index: 9999999;
-  pointer-events: none;
-  opacity: 1;
+    position: fixed;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    z-index: 9999999;
+    pointer-events: none;
+    opacity: 1;
 }
 
 pre {
-  background: white;
-  color: black;
-  border: 2px solid black;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    background: white !important;
+    border: 3px solid black;
+}
+
+/* Only apply to inline code, not code blocks */
+code:not(pre code) {
+    font-family: "Courier New", monospace;
+    font-size: 0.9em;
+    background: #faf4ed !important;
+    color: #31748f !important;
+    padding: 0.2em 0.4em !important;
+    border-radius: 3px !important;
+    word-spacing: -0.25em;
+    letter-spacing: -0.1em;
+}
+
+code:not(pre code)::before,
+code:not(pre code)::after {
+    content: "";
+    display: none;
+}
+
+/* Code block styling - preserve Shiki theme */
+pre code {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Remove SyntaxHighlighter borders */
+pre pre {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
 }
 
 @media only screen and (max-width: 600px) {
-  .center-dot {
-    width: 0px;
-    height: 0px;
-    opacity: 0;
-  }
+    .center-dot {
+        width: 0px;
+        height: 0px;
+        opacity: 0;
+    }
 
-  .box-container {
-    opacity: 0;
-  }
+    .box-container {
+        opacity: 0;
+    }
 }

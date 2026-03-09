@@ -124,7 +124,7 @@ def prefix_matching_head_detector(cache: ActivationCache, original_token_idx, pr
 The above function will find all heads where the head assigned a value greater than the configured threshold value $0.6$ between the pair of tokens at the indices `original_token_idx` and `prev_token_idx`. It will output a list of the form $[0.6 - 0.3, 1.2 - 0.5, 3.3 - 0.9]$ where the value before the '.' is the layer index and value after is the head index. The value after the dash is the attention value.
 Running the code above on the activation values from our chosen sequence to find the prefix matching heads, i.e. the heads that assigned a high attention score to the first occurrence of *Smith* when trying to predict what comes after the second occurrence of *Steve*, we get:
 
-```
+```python
 ['5.5 0.8519402146339417',
  '6.9 0.8816268444061279',
  '7.10 0.7206246852874756',
@@ -236,4 +236,3 @@ export default function MDXPage({ children }) {
     {children}
   </MdxLayout>
 }
-
