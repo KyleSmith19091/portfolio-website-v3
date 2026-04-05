@@ -54,7 +54,7 @@ export const blogPosts: BlogPost[] = [
       "Ideas behind distributed filesystems",
     date: new Date("2026-04-02"),
     author: "Kyle Smith",
-    ogImage: "/blog/lsm-db/day1.png",
+    ogImage: "/blog/fs/cap.png",
     keywords: ["files", "filesystem", "gfs"],
   },
 ];
