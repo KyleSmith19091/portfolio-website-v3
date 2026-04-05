@@ -47,6 +47,16 @@ export const blogPosts: BlogPost[] = [
     ogImage: "/blog/lsm-db/day1.png",
     keywords: ["lsm", "db", "database"],
   },
+  {
+    slug: "fs",
+    title: "Distributed Filesystem",
+    description:
+      "Ideas behind distributed filesystems",
+    date: new Date("2026-02-05"),
+    author: "Kyle Smith",
+    ogImage: "/blog/lsm-db/day1.png",
+    keywords: ["files", "filesystem", "gfs"],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
