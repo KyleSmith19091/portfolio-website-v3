@@ -57,6 +57,16 @@ export const blogPosts: BlogPost[] = [
     ogImage: "/blog/fs/cap.png",
     keywords: ["files", "filesystem", "gfs"],
   },
+  {
+    slug: "serverless",
+    title: "How to build a serverless runtime (without Kubernetes)",
+    description:
+      "I built a cheap serverless runtime without Kubernetes.",
+    date: new Date("2026-04-28"),
+    author: "Kyle Smith",
+    ogImage: "/blog/serverless/serverless.png",
+    keywords: ["serverless", "wasm", "wasi", "rust"],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
