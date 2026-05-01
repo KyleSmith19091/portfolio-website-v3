@@ -7,7 +7,7 @@ export const meta = {
   title: "How to build a serverless runtime (without Kubernetes)",
   description: "I built a cheap serverless runtime without Kubernetes.",
   ogImage: "/blog/serverless/serverless.png",
-  date: "2026-04-28",
+  date: "2026-05-01",
   author: "Kyle Smith",
   keywords: ["serverless", "wasm", "wasi", "rust"],
 };
@@ -16,62 +16,62 @@ export const meta = {
 <span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2026-05-01</span>
 <hr />
 
-One of the problems I've had with personal projects is that deploying backend logic is always a pain. I usually need to package it into a docker
-image and turn to some expensive vendor, where the most economic approach is to use their serverless offering. This further entails setting up
-a project on the platform which means I've already lost all of the energy I had at the start. Don't get me wrong I'm a big fan of serverless runtimes, 
-not necessarily for the elastic scaling, but rather forcing you to write 
+One of the problems I've had with personal projects is that deploying backend logic is always a pain. I usually need to package it into a Docker
+image and turn to some expensive vendor, where the most economical approach is to use their serverless offering. This further entails setting up
+a project on the platform, which means I've already lost all of the energy I had at the start. Don't get me wrong, I'm a big fan of serverless runtimes,
+not necessarily for the elastic scaling, but rather because they force you to write
 stateless applications. Usually at the cost of relying heavily on some distributed storage layer (either a database or object store)
 you get a service that is easy to reason about (since the hardcore engineering usually sits in the distributed storage layer). To deploy
-a serverless application you have two options. The first and most obvious one being packaging it in a Docker image and deploying to something 
-like Google Cloud Run. This gives you instant access to an advanced auto-scaler that can handle thousands of requests a second. However if you
+a serverless application, you have two options. The first and most obvious one is packaging it in a Docker image and deploying to something
+like Google Cloud Run. This gives you instant access to an advanced auto-scaler that can handle thousands of requests a second. However, if you
 want your service to scale to zero, you need to tolerate cold starts. If cold starts can't be tolerated you can configure Cloud Run to always
-have a minimum number of instances, but this can become expensive. To avoid the cost, but get super quick startup times you can turn to something
-like Cloudflare workers which is an example of a Function-As-A-Serice(FAAS). This then comes with its own set of restrictions, one of them being 
+have a minimum number of instances, but this can become expensive. To avoid the cost, but get super quick startup times, you can turn to something
+like Cloudflare Workers, which is an example of Function-as-a-Service (FaaS). This then comes with its own set of restrictions, one of them being
 that only a specific set of languages are supported. I wanted to see if I could build a service that combines the best of both worlds.
 
-> Before we dive in, these services are battle-hardened and contain many years of engineering, so I'm not trying to reinvent the wheel, but 
-for personal projects I could create something that is cheaper, easier to deploy to and simpler overall.
+> Before we dive in, these services are battle-hardened and contain many years of engineering, so I'm not trying to reinvent the wheel, but
+for personal projects I could create something that is cheaper, easier to deploy to, and simpler overall.
 
 ## The Problem
 
-The problem I'm trying to solve is that I want to be able to deploy a program written in a systems programming language like Rust or Go such that 
-it can easily be accessed over the internet. I need to be able to call it from NextJS (my frontend development framework of choice) or another backend application.
-So the requirements I set for myself is the following:
+The problem I'm trying to solve is that I want to be able to deploy a program written in a systems programming language like Rust or Go such that
+it can easily be accessed over the internet. I need to be able to call it from Next.js (my frontend development framework of choice) or another backend application.
+So the requirements I set for myself are the following:
 - Cheap with a constant price: I want to pay roughly R400 ~ $25 a month
 - Easy to deploy: I want the deployment to be "easy", meaning I just want to run a single terminal command to deploy it.
 - Configurable scaling: I want to be able to control how many requests are handled at a time.
-- Needs to language agnostic.
-- Fast: Needs to support millisecond startup times.
+- Needs to be language agnostic.
+- Fast: needs to support millisecond startup times.
 
-For cheap infrastructure the best option is to get a VPS. For where I live (South Africa) there are many cheap options for provisioning a VPS with the necessary 
-security. For the solution to be language agnostic we need some virtualised runtime that is also lightweight for the quick startup times. WASM+Wasmtime (<a href="https://wasi.dev/" target="#">WASI</a> specification) fit the bill here.
+For cheap infrastructure the best option is to get a VPS. For where I live (South Africa) there are many cheap options for provisioning a VPS with the necessary
+security. For the solution to be language agnostic, we need some virtualised runtime that is also lightweight for the quick startup times. WASM+Wasmtime (<a href="https://wasi.dev/" target="#">WASI</a> specification) fits the bill here.
 Wasmtime is a runtime that treats WASM code as the bytecode and translates it to native machine code which can be executed on a host machine. It is a special WASM
-runtime flavour for backend WASM applications. The WASI standard is still very new and there are limitations that need to be taken into account. The latest version 
+runtime flavour for backend WASM applications. The WASI standard is still very new, and there are limitations that need to be taken into account. The latest version
 of the standard is WASI 0.3, but the more "stable" iteration is WASI 0.2. The standard defines the API that a program can use to interact with a WASM runtime. The standard
-then needs to be implemented by a compiler of a higher level language. This is the first limitation, the language I want to program in needs to have the WASI 0.2 as a compilation target.
+then needs to be implemented by a compiler of a higher-level language. This is the first limitation: the language I want to program in needs to have WASI 0.2 as a compilation target.
 This was a bit of an issue for me since one of the languages I use regularly is Go and the discussion for adding the WASI 0.2 standard to the compiler is a slow one.
 The only solution at the moment is to use the <a href="https://tinygo.org/docs/guides/webassembly/wasi/" target="#">TinyGo</a> compiler. I decided for the initial
 iteration of the problem I was willing to accept this shortcoming. The next issue is that Wasmtime defines a full virtual runtime which means that the runtime defines
 a limited API for interacting with the host machine. Something as simple as opening a TCP socket is not supported in WASI 0.2, but it does provide the piping for making
-an HTTP request, which was all I really needed for the applications I wanted to deploy. 
+an HTTP request, which was all I really needed for the applications I wanted to deploy.
 
 ## Architecture
 
 With an initial idea in mind I needed to think about how the actual service orchestration would work. One of the core requirements I had for the project is that
-the actual service orchestration logic should be stateless (aside from caching which I knew would be required for quick startup times), meaning it should be trivial to 
+the actual service orchestration logic should be stateless (aside from caching which I knew would be required for quick startup times), meaning it should be trivial to
 deploy the orchestration binary to multiple VPS instances without explicit coordination between them. To provide that, I needed a distributed storage layer where the
-compiled WASM code and application logs would live. These don't need any complex query logic, so using object storage was a logical choice. I decided to use Cloudflare R2
+compiled WASM code and application logs would live. These don't need any complex query logic, so object storage was a logical choice. I decided to use Cloudflare R2
 object storage since it has a very generous free tier. With this in mind I was able to sketch out a high-level view of what the system would look like:
 
 ```rust
-    --- 
-    ┌───────────────────────────────────────────────────────────────┐               
-    │                                                               │               
-    │                        Object Storage                         │               
-    │                                                               │               
-    └───────────────────────────────────────────────────────────────┘               
-               Fetch WASM           ▲    Persist                                    
-                 bytes──────────────┴───Invocation──┐                               
+    ---
+    ┌───────────────────────────────────────────────────────────────┐
+    │                                                               │
+    │                        Object Storage                         │
+    │                                                               │
+    └───────────────────────────────────────────────────────────────┘
+               Fetch WASM           ▲    Persist
+                 bytes──────────────┴───Invocation──┐
 ┌────────────────┼─────────────────────────Logs─────┴──────────────────────────────┐
 │                │                      ┌──────────────────────┐                   │
 │    ┌──────────────────────┐           │ ┌────────────────────┴─┐                 │
@@ -93,42 +93,42 @@ object storage since it has a very generous free tier. With this in mind I was a
 2. *Runner*: Responsible for constructing and managing the WASM runtime environments.
 3. *Invocation*: A WASM runtime for a single service.
 
-The architecture follows a hierarchial design:
+The architecture follows a hierarchical design:
 
 ```rust
----                     
-                     ┌──────────────────┐                     
-                     │                  │                     
-                     │    Dispatcher    │                     
-                     │                  │                     
-                     └──────────────────┘                     
-                               │                              
-          ┌────────────────────┼────────────────────┐         
+---
+                     ┌──────────────────┐
+                     │                  │
+                     │    Dispatcher    │
+                     │                  │
+                     └──────────────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
 ┌─────────▼────────┐ ┌─────────▼────────┐ ┌─────────▼────────┐
 │                  │ │                  │ │                  │
 │      Runner      │ │      Runner      │ │      Runner      │
 │                  │ │                  │ │                  │
 └──────────────────┘ └──────────────────┘ └──────────────────┘
-   ┌─────────────┐    ┌─────────────┐      ┌─────────────┐    
-   │┌────────────┴┐   │┌────────────┴┐     │┌────────────┴┐   
-   ││Invocation   │   ││Invocation   │     ││Invocation   │   
-   └┤             │   └┤             │     └┤             │   
-    └─────────────┘    └─────────────┘      └─────────────┘   
+   ┌─────────────┐    ┌─────────────┐      ┌─────────────┐
+   │┌────────────┴┐   │┌────────────┴┐     │┌────────────┴┐
+   ││Invocation   │   ││Invocation   │     ││Invocation   │
+   └┤             │   └┤             │     └┤             │
+    └─────────────┘    └─────────────┘      └─────────────┘
 ```
 
 The *Dispatcher* is the root and manages multiple runners. The runners in turn manage executions of a service (called invocations). This gives better separation
-of concerns since each layer scales differently and has its own orchestration logic. For simplicity I required that this run on a single host machine so I decided 
-to split the orchestration logic across two Unix processes. The Dispatcher would expose an HTTP server which will receive the initial request which triggers
-an invocation. It would inspect the incoming request schedule it on a runner which would then in turn construct and manage the invocation. The Runners I decided
-should be forked processes from the Dispatcher so I could separate the processing of short-lived Invocation requests from the possibly long-running invocation execution.
-The Dispatcher will then also hand-off the original TCP socket that the HTTP request came in on so the runner can own it. This allows the load of the network and socket management 
-to be better spread across multiple processes and allow the Dispatcher to focus on its role of orchestration.
+of concerns since each layer scales differently and has its own orchestration logic. For simplicity I required that this run on a single host machine so I decided
+to split the orchestration logic across two Unix processes. The Dispatcher would expose an HTTP server which would receive the initial request that triggers
+an invocation. It would inspect the incoming request and schedule it on a runner, which would then in turn construct and manage the invocation. I decided the Runners
+should be forked processes from the Dispatcher so I could separate the processing of short-lived invocation requests from the possibly long-running invocation execution.
+The Dispatcher would then also hand off the original TCP socket that the HTTP request came in on so the runner can own it. This allows the load of the network and socket management
+to be better spread across multiple processes and allows the Dispatcher to focus on its role of orchestration.
 
 ## Building the Dispatcher
 
 ```rust
 ---
-  ┌ ─ ─ ─ ─ ─                                                                         
+  ┌ ─ ─ ─ ─ ─
 ┌──Dispatcher├───────────────────────────────────────────────────────────────────────┐
 │ └ ─ ─ ─ ─ ─                                                                        │
 │ ┌──────────┐                     Orchestrator────────────────────────────────────┐ │
@@ -168,10 +168,10 @@ impl HttpConnection {
     /// Peek at an accepted TCP stream to extract the HTTP/1.1 request method
     /// and path **without consuming any bytes** from the stream.
     pub async fn from_tcp_stream(stream: TcpStream) -> Result<Self, Box<dyn std::error::Error>> {
-        // wait for stream to become readble
+        // wait for stream to become readable
         stream.readable().await?;
 
-        // prepare 4Kb buffer, we are only reading the request line so should be more than enough
+        // prepare 4KB buffer, we are only reading the request line so should be more than enough
         // https://datatracker.ietf.org/doc/html/rfc2616
         let mut peek_buf = [0u8; 4096];
 
@@ -203,7 +203,7 @@ impl HttpConnection {
 }
 ```
 
-The `HttpConnection` is an abstraction used to capture the intent of the request (invocation/metadata). `parse_invocation` is will extract the body of the POST request which
+The `HttpConnection` is an abstraction used to capture the intent of the request (invocation/metadata). `parse_invocation` will extract the body of the POST request which
 represents the arguments of the method called.
 
 ### Orchestrator
@@ -213,8 +213,8 @@ The orchestrator component routes the connection to the appropriate handler. For
 3. With this in hand the invocation is handed off to the `Controller` to schedule the invocation for execution.
 
 ### Controller
-The controller is responsible for routing the invocation to the appropriate process which will run the Runner binary which creates the WASM runtime. This is where the 'scaling' and 'load balancing' is implemented.
-The controller holds an in-memory structure to track processes so it can prioritise processes which have recently executed similar invocations.
+The controller is responsible for routing the invocation to the appropriate process, which will run the Runner binary that creates the WASM runtime. This is where the 'scaling' and 'load balancing' are implemented.
+The controller holds an in-memory structure to track processes so it can prioritise processes that have recently executed similar invocations.
 ```rust
 // 1. Try to find a process that already has the module loaded and has capacity.
 let warm = self.running_services.iter().position(|p| {
@@ -252,13 +252,13 @@ let child = unsafe {
         };
 ```
 
-We then create a `Process` entity which is passed to the `Controller` so it can send subsequent invocations to the Process which will then use the serialise the invocation request
+We then create a `Process` entity which is passed to the `Controller` so it can send subsequent invocations to the Process, which will then serialise the invocation request
 and send it over the socket.
 
 ### Runner
 The runner is a standalone binary that upon starting up will:
 1. Bind to the socket with file descriptor index 3.
-2. Initialise a connection with object store so it can store the logs for an invocation.
+2. Initialise a connection with the object store so it can store the logs for an invocation.
 3. Construct the global WASM runtime context.
 4. It will then instantiate a cache so we can easily spin up runtimes if the same invocation is called again.
 
@@ -266,10 +266,10 @@ Receiving an invocation will reconstruct the original TCP connection so it can r
 the logs are then captured and stored in the object store. When creating the invocation the logs can be retrieved using the invocation ID which is generated by the Dispatcher.
 
 ## Conclusion
-This was a very fun project that I look forward to using and iterating on. The next step will be adding something like <a href="https://github.com/containers/bubblewrap">bwrap</a> to 
-give the runtime an isolated filesystem similar to a docker container. WASM is still a new technology and the WASI standard still needs to be extended
-to allow for more interesting projects. It does however show promise for being a more lightweight and efficient virtualised runtime environment.
-For those interested the source code can be found <a href="https://github.com/KyleSmith19091/vortex">here</a>.
+This was a very fun project that I look forward to using and iterating on. The next step will be adding something like <a href="https://github.com/containers/bubblewrap">bwrap</a> to
+give the runtime an isolated filesystem similar to a Docker container. WASM is still a new technology and the WASI standard still needs to be extended
+to allow for more interesting projects. It does, however, show promise for being a more lightweight and efficient virtualised runtime environment.
+For those interested, the source code can be found <a href="https://github.com/KyleSmith19091/vortex">here</a>.
 
 export default function MDXPage({ children }) {
   return <MdxLayout meta={meta}>
