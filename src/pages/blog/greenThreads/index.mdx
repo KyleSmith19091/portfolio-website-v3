@@ -1,0 +1,642 @@
+import MdxLayout from '../../../components/mdx';
+
+export const meta = {
+  title: "Green Threads from scratch",
+  description: "Implementing green threads (coroutines + a scheduler) from scratch in Zig.",
+  ogImage: "/blog/greenThreads/greenThreads.png",
+  date: "2026-06-21",
+  author: "Kyle Smith",
+  keywords: ["green threads", "coroutines", "zig", "scheduler", "concurrency"],
+};
+
+# Green Threads from scratch in Zig
+<span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2026-06-21</span>
+<hr />
+
+Green threads or user-level threads are units of work that don't require explicit interaction with the kernel. Hence describing them as "user-level". 
+Since these are in user-level we have explicit control over how they work, when they yield to other executing threads and how much memory they allocate for setting up the execution context.
+
+Green threads can typically be implemented on top of OS threads to allow for parallel/concurrent (parallel if you have multiple cores) execution. 
+
+## Cooperative vs Preemptive Threads
+Coorperative threads explicitly yield execution to the scheduler to execute another thread. The yield can take many forms:
+- Explicit yield function
+- Blocking I/O operation -> waiting for connection, reading a file etc.
+- Reading from a queue
+
+Preemptive threads need to be issued an interrupt to stop execution. This is typically a signal issued after some timeout which will force the thread to yield. 
+
+In practice a combination of the two strategies are typically used. If a thread has been executing for a "long time", like 10ms, we interrupt the thread to give other threads a chance to execute. This helps against cases where a thread might be executing something like
+```go
+for(;;) {
+	x++;
+}
+```
+An increment is not something we would need to yield on, but a loop running forever would block the other threads from executing when following the cooperative strategy. This is typically implemented with OS signals which interrupt the execution to yield to another thread.
+
+## Coroutines
+
+To implement practically we first need to look at the humble coroutine. A coroutine is the component needed to actually implement a green thread. 
+
+> A coroutine is a unit of execution that can be **paused** and **resumed** at a later time.
+
+### Context
+
+Some programming languages implement these explicitly, but we need to take a look under the hood to see how they work. I'm busy learning Zig and the one thing I really enjoy about is that the standard library is readable. So let's take a look at the `std/Io/fiber.zig` (fiber is the coroutine in this context) file. The first component of note is the `Context` struct:
+
+```c
+/// Stores the cpu state of an inactive fiber.
+pub const Context = switch (builtin.cpu.arch) {
+    .aarch64 => extern struct {
+        sp: u64,
+        fp: u64,
+        pc: u64,
+    },
+    .riscv64 => extern struct {
+        sp: u64,
+        fp: u64,
+        pc: u64,
+    },
+    .x86_64 => extern struct {
+        rsp: u64,
+        rbp: u64,
+        rip: u64,
+    },
+    else => |arch| @compileError("unimplemented architecture: " ++ @tagName(arch)),
+};
+```
+
+This struct defines an execution context, it is a type that is evaluated at compile time based on the CPU architecture the program is built on. We'll focus on the x86 branch since this is what I'm most familiar with. The context of a coroutine is defined by three pieces of information, the stack pointer (`rsp`), the base pointer (`rbp`) and instruction pointer (`rip`). On a 64-bit system these registers can store 64-bit values. To understand why we need a structure to hold this information we need to understand how function calls work at the assembly level. 
+
+When we run a binary file we are asking the operating system to spawn a process. The kernel will coordinate with the computer memory to give us some portion of memory. We can take a look at the linux system call for this operation: `execve`. This system call opens the executable and parses it. It then also sets up the virtual memory layout, which looks something like this:
+
+```python
+---
+                                 ┌───────────────┐
+┌──────────────────────────────┐ │ High Address  │
+│                              │ └───────────────┘
+│         Kernel Space         │                  
+│                              │                  
+├──────────────────────────────┤                  
+│                              │                  
+│                              │                  
+│                              │                  
+│                              │                  
+│     Stack grows dawnward     │                  
+│                              │                  
+│                              │                  
+│                              │                  
+│                              │                  
+├──────────────────────────────┤                  
+│                              │                  
+│             MISC             │                  
+│                              │                  
+├──────────────────────────────┤                  
+│                              │                  
+│                              │                  
+│                              │                  
+│      Heap: Grows upward      │                  
+│                              │                  
+│                              │                  
+│                              │                  
+├──────────────────────────────┤                  
+│                              │                  
+│                              │                  
+│                              │                  
+│                              │                  
+│         Static Data          │                  
+│                              │                  
+│                              │                  
+│                              │                  
+│                              │                  
+│                              │ ┌───────────────┐
+└──────────────────────────────┘ │  Low Address  │
+                                 └───────────────┘
+```
+
+The CPU registers are set inside of this systemcall. The `rip` is set to the entry point of the executable. The `rsp` is set to the top of the stack. The `rbp` is not set at this point yet. The compiler that generated the executable will generate some assembly that looks like this.
+
+```asm
+call main_fn ;; call the main function
+;; runtime code ...
+
+;; which is equivalent to
+push <address of next instruction> ;; moves stack pointer down
+jmp main_fn
+```
+
+This means we jump to the entry point of the program. At this point the `rsp` register points to 64 bits after the initial stack pointer. This is so that when the entry point returns it can pop off the stack and know where the instruction is after the initial call. The stack is also used to allocate memory for function arguments and local variables. Consider our main function looks like the following:
+
+```c
+fn main() {
+	int i = 0;
+}
+```
+
+A function that is not in-lined on an x86 system will always have the following, called the function prologue:
+
+```asm
+push rbp ;; save the old base pointer (previous function stack frame)
+mov rbp, rsp ;; copy stack pointer into base pointer
+sub rsp, <number of bytes> ;; allocate memory for function local variables
+```
+
+The `rip` or instruction pointer register is automatically incremented as instructions are executed. So when we need to switch from executing a function in the middle of it we need to store these three pieces of information. These pieces of information define the **state** of the function. So by setting these registers explicitly we can manipulate the normal flow of a function. 
+
+### Context Switch
+
+Changing which function is being executed is done using a context switch, this requires us to write a bit of assembly to get working. Zig implements the logic in the `contextSwitch` function:
+```c
+pub const Switch = extern struct { old: *Context, new: *Context };
+
+pub inline fn contextSwitch(s: *const Switch) *const Switch {
+	...
+}
+```
+
+There's a lot of code needed here, but in Zig it boils down to the following assembly, (rsi is set to the variable s):
+
+```asm
+movq 0(rsi), rax ;; store the pointer s->old into rax
+movq 8(rsi), rcx ;; store the pointer s->new into rcx
+leaq 0f(rip), rdx ;; load the address of the instruction pointer into rdx
+movq rsp, 0(rax) ;; store stack pointer s->old->rsp
+movq rbp, 8(rax) ;; store base pointer s->old->rbp
+movq rdx, 16(rax) ;; store instruction pointer s->old->rip
+movq 0(rcx), rsp ;; set stack pointer to s->new rsp value
+movq 8(rcx), rbp ;; set base pointer to s->new rbp value
+jmpq *16(rcx) ;; jump to instruction pointed to by s->new rip value
+```
+
+### Implementing a coroutine runtime
+The coroutine runtime will form the basis of our library. The idea is that a coroutine would define how execution is yielded between execution units within a single thread context. A routine will be my version of a green thread.
+
+```c
+pub const DEFAULT_MAX_ROUTINES = 10;
+pub const DEFAULT_STACK_SIZE = 2 * 1024; // 2kB
+
+pub const RoutineState = enum {
+    UNUSED,
+    RUNNING,
+    READY,
+};
+
+pub const Routine = struct {
+    context: context.Context, 
+    state: RoutineState,
+};
+
+pub const Options = struct {
+    max_routines: usize = DEFAULT_MAX_ROUTINES,
+    stack_size: usize = DEFAULT_STACK_SIZE,
+};
+```
+
+The runtime will be responsible for managing the routines:
+```c
+pub const Routines = struct {
+    allocator: std.mem.Allocator, // used to allocate stacks for routines
+    routine_table: []Routine, // table managing all routines
+    allocated_stacks: []?[]u8, // keep track of stacks so we can deallocate them
+    current_routine: *Routine, // current running routine
+    stack_size: usize,
+    
+    ...
+}
+```
+
+The runtime will expose a function called `spawn` which will be used to register a function to be executed within the runtime.
+```c
+/// Spawn a new routine on this context.
+pub fn spawn(self: *Routines, f: *const fn () void) !void {
+	
+	// find routine that is currently unused (not been assigned a function to execute)
+	var index: usize = 0;
+	var slot: ?*Routine = null;
+	for (self.routine_table) |*r| {
+		if (r.state == .UNUSED) {
+            slot = r;
+            break;
+        }
+        index += 1;
+    }
+
+    const r = slot orelse return error.TooManyRoutines;
+	
+	// allocate stack
+    const stack = try self.allocator.alloc(u8, self.stack_size);
+    // deallocate stack ONLY if something went wrong
+    errdefer self.allocator.free(stack);
+	
+	// prepare routine struct
+    r.* = .{ .context = .{}, .state = .READY };
+    
+    // track allocated stack
+    self.allocated_stacks[index] = stack;
+	
+	// register custom exit function and function f on the stack
+    context.prepare(&r.context, stack, @intFromPtr(f), @intFromPtr(&stopTrampoline));
+}
+```
+
+The prepare function looks like the following:
+```c
+pub fn prepare(ctx: *Context, stack: []u8, entry: u64, exit: u64) void {
+    // align stack pointer to 16 byte boundary
+    var sp = (@intFromPtr(stack.ptr) + stack.len) & ~@as(usize, 0xf);
+    switch (builtin.cpu.arch) {
+        .x86_64 => {
+            // subtract stack pointer the size of a pointer
+            // stack grows to zero, so the exit function
+            // should be the last thing in the stack 
+            // ie the thing that is popped last
+            sp -= @sizeOf(usize);
+
+            // set to point to the exit function
+            @as(*usize, @ptrFromInt(sp)).* = exit;
+
+            // point to exit
+            ctx.rsp = sp;
+
+            // set next instruction to be execute to the entry function
+            // the entry function is assumed to follow the correct
+            // calling convention. So it will store the rsp 
+            // and setup it's stack frame on our allocated stack
+            // since 
+            ctx.rip = entry;
+        },
+        .aarch64, .riscv64 => {
+	        // logic for other CPU architectures
+            sp -= 16;
+            @as(*usize, @ptrFromInt(sp + 8)).* = exit;
+            @as(*usize, @ptrFromInt(sp)).* = entry;
+            ctx.sp = sp;
+            ctx.pc = @intFromPtr(&trampoline);
+        },
+        else => |arch| @compileError("unimplemented architecture: " ++ @tagName(arch)),
+    }
+}
+```
+
+The exit function is used to alert the runtime when a function is done executing within a routine, which means we can mark the routine as unused again. The other interesting function is the `yield` function. We are implementing a cooperative green thread library so a function will need to explicitly call the `yield` function to indicate that it is ready to give up execution to another routine.
+
+```c
+/// Hand execution to the next ready routine. Returns false if there is
+/// no other ready routine to switch to.
+pub fn yield(self: *Routines) bool {
+	// get pointer to table as int
+    const table_ptr = @intFromPtr(self.routine_table.ptr);
+    
+    // determine memory address of the current routine within the routine table
+    const start = (@intFromPtr(self.current_routine) - table_ptr) / @sizeOf(Routine);
+    const len = self.routine_table.len;
+	
+	// find a routine that is ready
+    var i = (start + 1) % len;
+    while (i != start) : (i = (i + 1) % len) {
+        if (self.routine_table[i].state == .READY) break;
+    } else return false;
+	
+    const prev = self.current_routine;
+	// update state of the routine that has given up execution
+    if (prev.state == .RUNNING) prev.state = .READY;
+
+	// mark next routine as running
+    const next = &self.routine_table[i];
+    next.state = .RUNNING;
+    self.current_routine = next;
+
+    // ensure the threadlocal points at us before context switching so
+    // the `stop` trampoline can find this instance when a routine exits.
+    const prev_current = current;
+    current = self;
+    defer current = prev_current;
+
+    _ = context.contextSwitch(&.{ .old = &prev.context, .new = &next.context });
+    return true;
+}
+```
+
+Usage looks like the following:
+```c
+test "routines run and interleave" {
+    testLen = 0;
+    var rt = try Routines.init(std.testing.allocator, .{});
+    defer rt.deinit();
+    testRt = &rt;
+
+    try rt.spawn(&taskA);
+    try rt.spawn(&taskB);
+
+    try expect(rt.routine_table[1].state == .READY);
+    try expect(rt.routine_table[2].state == .READY);
+	
+	// interleave until each one has finished
+    while (rt.yield()) {}
+
+    try expect(std.mem.eql(u8, testLog[0..testLen], "abAB1"));
+    try expect(rt.current_routine == &rt.routine_table[0]);
+    try expect(rt.routine_table[1].state == .UNUSED);
+    try expect(rt.routine_table[2].state == .UNUSED);
+}
+```
+
+## Adding threads
+
+Now we need to add the ability to actually execute coroutines on multiple threads. The idea will be that each thread will spin on a queue which will hold routines that need to be spawned. Each thread will manage its own routine runtime. Combining both threads and coroutines we are able to make progress on more units of work than there are OS threads. We get both parallel execution across threads with concurrent execution on each thread.
+
+We need to add two additional components: a scheduler and a thread. The scheduler will be responsible for accepting a routine and sending it to a specific thread using the queue. The thread will simply wait until there is a routine in the queue and then register it with the routine runtime.
+
+The queue will be an unbounded single-producer-single-consumer queue. The queue will expose two handles: one for pushing content on the queue and another for popping off the queue. We can implement this using a doubly linked list and a condition variable:
+
+```c
+pub fn UnboundedSPSCChannel(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        // runtime
+        allocator: std.mem.Allocator,
+        io: std.Io,
+
+        // just pointer to a first and last node
+        queue: std.DoublyLinkedList,
+        // mutex to protect list
+        mu: std.Io.Mutex,
+        // condition variable to wake consumer
+        notEmpty: std.Io.Condition,
+        // closed
+        closed: std.atomic.Value(bool),
+        
+        ...
+        
+        /// channel constructs the handles for the producer and consumer for the channel
+        pub fn channel(self: *Self) struct { producer: Producer(T), consumer: Consumer(T) } {
+            return .{
+                .producer = .{
+                    .io = self.io,
+                    .channelHandle = self,
+                },
+                .consumer = .{
+                    .io = self.io,
+                    .channelHandle = self,
+                },
+            };
+        }
+    }
+}
+```
+
+The scheduler will own a the producer handle per thread.
+
+```c
+pub fn Producer(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        channelHandle: *UnboundedSPSCChannel(T),
+        // io runtime interaction needed to interact with the mutex and condition variable
+        io: std.Io,
+
+        pub fn push(self: *Self, data: T) !void {
+
+            // initialise entry
+            const entry = try ChannelEntry(T).init(self.channelHandle.allocator, data);
+
+            // add node
+            try self.channelHandle.mu.lock(self.io);
+            defer self.channelHandle.mu.unlock(self.io);
+            // check if channel is still open
+            if (self.channelHandle.closed.load(.acquire)) {
+                return;
+            }
+            self.channelHandle.queue.prepend(&entry.node);
+
+            // signal consumer, which will wake up thread
+            self.channelHandle.notEmpty.signal(self.io);
+        }
+    };
+}
+```
+
+The producer will lock the list so that it can modify it and then it will indicate to the consumer that it the queue is no longer empty. This is an optimisation so that the consumer thread can do other work instead of waiting on the producer to push something on it.
+
+```c
+pub fn Consumer(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        channelHandle: *UnboundedSPSCChannel(T),
+        // io runtime interaction needed to interact with the mutex and condition variable
+        io: std.Io,
+
+        /// pop off single element from channel
+        /// NOTE: will block until an element is on the queue
+        pub fn pop(self: Self) !T {
+            // check if channel is closed (using unordered to keep this check cheaper)
+            // not critical if this instruction does not see earlier writes to stop
+            if (self.channelHandle.closed.load(.unordered)) {
+                return error.ChannelClosed;
+            }
+
+            try self.channelHandle.mu.lock(self.io);
+            defer self.channelHandle.mu.unlock(self.io);
+
+            // loop until queue has something to consume
+            while (self.channelHandle.queue.last == null and !self.channelHandle.closed.load(.acquire)) {
+                // wait internally unlocks the given mutex and defers locking the mutex
+                // when the mutex is unlocked it the thread is put to sleep
+                // once the function returns the mutex is locked so the above loop condition
+                // check is safe to do. A while loop is required to protect against spurious
+                // wakeups.
+                try self.channelHandle.notEmpty.wait(self.io, &self.channelHandle.mu);
+            }
+
+            if (self.channelHandle.closed.load(.unordered)) {
+                return error.ChannelClosed;
+            }
+
+            // safely pop off node
+            const node: *ChannelEntry(T) = @fieldParentPtr("node", self.channelHandle.queue.pop().?);
+            const data = node.data;
+
+            // deallocate
+            self.channelHandle.allocator.destroy(node);
+
+            return data;
+        }
+	    ...
+}
+```
+
+A thread wraps a routine runtime and an actual OS thread:
+
+```c
+pub const Thread = struct {
+    const Self = @This();
+
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    fnChannel: channel.UnboundedSPSCChannel(ThreadSendFn),
+    stopChannel: channel.UnboundedSPSCChannel(bool),
+    routineRuntime: ?routines.Routines = null,
+    threadHandle: ?std.Thread = null,
+    
+    pub fn scheduleFn(self: *Self, sendFn: ThreadSendFn) !void {
+        // non-blocking check for a stop signal; stop() closes the channel,
+        // so a closed stopChannel means "don't schedule".
+        var stopConsumer = self.stopChannel.channel().consumer;
+        _ = stopConsumer.popIf() catch |err| switch (err) {
+            error.ChannelClosed => return,
+            else => return err,
+        };
+
+        // send function
+        var producer = self.fnChannel.channel().producer;
+        try producer.push(sendFn);
+    }
+    
+    pub fn run(self: *Self) !void {
+        self.routineRuntime = try routines.Routines.init(self.allocator, .{
+            .max_routines = routines.DEFAULT_MAX_ROUTINES,
+        });
+
+        self.threadHandle = try std.Thread.spawn(.{}, runInner, .{
+            &self.routineRuntime.?,
+            self.stopChannel.channel().consumer,
+            self.fnChannel.channel().consumer,
+        });
+    }
+
+    fn runInner(routineRuntime: *routines.Routines, stopChannel: channel.Consumer(bool), consumer: channel.Consumer(ThreadSendFn)) !void {
+        defer routineRuntime.deinit();
+
+        // popIf takes a mutable pointer, so keep local mutable copies of the
+        // (cheap, by-value) consumer handles.
+        var stopCons = stopChannel;
+        var cons = consumer;
+
+        while (true) {
+            // honour a stop request between batches
+            if (stopRequested(&stopCons)) return;
+
+            // block until at least one function is queued (thread sleeps
+            // while idle thanks to the channel's condition variable).
+            const first = cons.pop() catch |err| switch (err) {
+                error.ChannelClosed => return,
+                else => return err,
+            };
+            routineRuntime.spawn(first) catch {};
+
+            // opportunistically drain any other functions already queued so
+            // this thread manages a *set* of routines, not just one at a time.
+            while (true) {
+                const maybe = cons.popIf() catch |err| switch (err) {
+                    error.ChannelClosed => return,
+                    else => return err,
+                };
+                const next = maybe orelse break;
+                routineRuntime.spawn(next) catch break;
+            }
+
+            // cooperatively run every spawned routine to completion
+            while (routineRuntime.yield()) {
+                if (stopRequested(&stopCons)) return;
+            }
+        }
+    }
+}
+```
+
+The scheduler will then manage the threads:
+
+```c
+/// Scheduler is responsible for managing OS Threads
+/// It serves as the dispatcher for a given routine
+/// to a specific thread which in turn will manage a set of routines
+/// in a single execution context
+pub const Scheduler = struct {
+    const Self = @This();
+
+    allocator: std.mem.Allocator,
+    numLogicalProcessors: usize,
+    lastThreadIdx: usize = 0,
+    threads: []Thread,
+    
+    pub fn schedule(self: *Self, sendFn: ThreadSendFn) !void {
+        const n = self.threads.len;
+
+        // advance the round-robin cursor first so consecutive calls fan out
+        // even when every thread currently reports the same (often zero) load.
+        const start = self.lastThreadIdx;
+        self.lastThreadIdx = (self.lastThreadIdx + 1) % n;
+
+        var bestIdx = start;
+        var bestLoad: usize = std.math.maxInt(usize);
+        var k: usize = 0;
+        while (k < n) : (k += 1) {
+            const idx = (start + k) % n;
+            const load = self.threads[idx].numRunningRoutines();
+            // a genuinely idle thread starting from the cursor is good enough;
+            // take it immediately to keep scheduling cheap.
+            if (load == 0) {
+                bestIdx = idx;
+                break;
+            }
+            if (load < bestLoad) {
+                bestLoad = load;
+                bestIdx = idx;
+            }
+        }
+
+        try self.threads[bestIdx].scheduleFn(sendFn);
+    }
+}
+```
+
+An example usage of this:
+
+```c
+fn job() void {
+    // do a little (fake) work
+    var sum: u64 = 0;
+    var i: u64 = 0;
+    while (i < 1000) : (i += 1) sum +%= i;
+    std.mem.doNotOptimizeAway(sum);
+
+    std.debug.print("job ran on OS thread {d}\n", .{std.Thread.getCurrentId()});
+    _ = completed.fetchAdd(1, .monotonic);
+}
+
+fn schedulerExample(allocator: std.mem.Allocator, io: std.Io) !void {
+    std.debug.print("--- scheduler across multiple threads ---\n", .{});
+
+    const num_threads = std.Thread.getCpuCount() catch 4;
+    std.debug.print("starting scheduler with {d} threads for {d} jobs\n", .{ num_threads, total_jobs });
+
+    var scheduler = try Scheduler.init(allocator, io, num_threads);
+    defer scheduler.deinit() catch {};
+
+    var n: usize = 0;
+    while (n < total_jobs) : (n += 1) {
+        try scheduler.schedule(&job);
+    }
+
+    // wait for every job to finish before tearing the scheduler down,
+    // otherwise deinit would stop the worker threads mid-flight.
+    while (completed.load(.monotonic) < total_jobs) {}
+
+    std.debug.print("all {d} jobs completed\n", .{completed.load(.monotonic)});
+}
+```
+
+In this simple example we schedule a bunch of jobs which will execute in parallel. We need some additional work to perform an explicit yield in the runtime, but you should get the idea.
+
+## Conclusion
+
+You can find the full code [here](https://github.com/KyleSmith19091/ZigRoutines) if you are interested. There are some components missing, like guard pages for the stacks to protect against overflow, preemptive scheduling and work-stealing. Green threads are pretty cool, but implementing them took a bit of the magic away (in a good way). Languages like Go and Erlang build the language on the concept of green threads and this makes them incredibly powerful. Being able to say to the runtime, listen I have a lot of work that needs to be done and might exceed the number of processors I have can you figure it out.
+
+export default function MDXPage({ children }) {
+  return <MdxLayout meta={meta}>
+    {children}
+  </MdxLayout>
+}

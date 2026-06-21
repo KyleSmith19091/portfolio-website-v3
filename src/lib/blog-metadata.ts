@@ -67,6 +67,16 @@ export const blogPosts: BlogPost[] = [
     ogImage: "/blog/serverless/serverless.png",
     keywords: ["serverless", "wasm", "wasi", "rust"],
   },
+  {
+    slug: "greenThreads",
+    title: "Green Threads from scratch in Zig",
+    description:
+      "Implementing green threads (coroutines + a scheduler) from scratch in Zig.",
+    date: new Date("2026-06-21"),
+    author: "Kyle Smith",
+    ogImage: "/blog/greenThreads/greenThreads.png",
+    keywords: ["green threads", "coroutines", "zig", "scheduler", "concurrency"],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
