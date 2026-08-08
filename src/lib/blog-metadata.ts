@@ -68,6 +68,24 @@ export const blogPosts: BlogPost[] = [
     keywords: ["serverless", "wasm", "wasi", "rust"],
   },
   {
+    slug: "dino",
+    title: "What makes good image features?",
+    description:
+      "How ViT backbones like DINOv3 learn dense, semantic image features.",
+    date: new Date("2026-08-08"),
+    author: "Kyle Smith",
+    ogImage: "/blog/dino/vit-architecture.png",
+    keywords: [
+      "computer vision",
+      "DINOv3",
+      "vision transformer",
+      "ViT",
+      "patch embeddings",
+      "features",
+      "representation learning",
+    ],
+  },
+  {
     slug: "greenThreads",
     title: "Green Threads from scratch in Zig",
     description:

@@ -1,0 +1,16 @@
+{
+  "model": "facebook/dinov3-vits16-pretrain-lvd1689m",
+  "layer": 12,
+  "grid_h": 14,
+  "grid_w": 14,
+  "dim": 384,
+  "dtype": "float32",
+  "normalized": true,
+  "layout": "row-major (grid_h, grid_w, dim)",
+  "image_width": 224,
+  "image_height": 224,
+  "files": {
+    "embeddings": "embeddings.bin",
+    "image": "image.png"
+  }
+}
