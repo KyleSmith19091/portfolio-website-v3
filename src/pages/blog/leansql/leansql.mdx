@@ -1,0 +1,386 @@
+export const meta = {
+  title: "Lean SQL: Formally Verifying Runtime Cost",
+  description: "Looking at how to leverage formal specifications to improve ",
+  ogImage: "/blog/lsm-db/day1.png",
+  date: "2026-11-21",
+  author: "Kyle Smith",
+  keywords: ["b-tree", "database", "storage engine", "c"],
+};
+
+import MdxLayout from '../../../components/mdx';
+import PaymentFlow from '../../../components/payment-flow';
+import PaymentStates from '../../../components/payment-states';
+import PaymentReachable from '../../../components/payment-reachable';
+import SpinChecker from '../../../components/spin-checker';
+import MergeJoin from '../../../components/merge-join';
+import SqliteStat from '../../../components/sqlite-stat';
+import SqliteFile from '../../../components/sqlite-file';
+import Benchmarks from '../../../components/benchmarks';
+
+
+Have you ever seen an SQL query and thought: Wow I really want to speedup this query, let me write a Lean spec. Yeah me neither. 
+Lean is a programming language for writing *formally verified* code. Formal verification is described as the process of proving or disproving that a hardware or software system behaves according to a formal specification. This is a pretty powerful idea and has been more commonly found in safety-critical or expensive-if-it-breaks systems such as [the mars rover flight software](https://www-robotics.jpl.nasa.gov/media/documents/biesiadecki_maimone06.pdf) and [aircraft wheel-braking systems](https://es-static.fbk.eu/people/bozzano/publications/cav2015a.pdf). 
+Formal verification has been until fairly recently been a unpopular and unglamorous resarch area due to its high complexity and limited cost-effective practical applications. However with the latest frontier models we are now able to create formal specifications without a PHD and more easily apply them to a wider range of software systems. We will in particular explore how we can leverage formal verification to actually speedup database calls. 
+
+### Sections
+- <a href="#1">How Does Formal Verification Work?</a>
+
+<hr/>
+
+<span id="1"></span>
+## How Does Formal Verification Work?
+
+Techniques related to Formal Verification fall under a wider umbrella of techniques called Formal methods. Formal methods describes the techniques and tools for specifying, developing, analyzing and verifying computer software and hardware systems. The field of Formal methods is as old as Computer Science itself. It was born from the need to be able to test that a system works as expected without testing it **directly**. In modern software development our main techniques for software verification are typically unit, integration and e2e tests. Typically we have a mental model for what the expected inputs and outputs are for our software components and then write our tests around that. The obvious limit here is that we might not always consider all the possible scenarios that might occur and thus we don't test for them. What if we instead simply stated the expected behaviour of the system as a set of rules and then asked a tool to check if there are any scenarios where those rules could be violated. 
+
+To see why this matters, look at a typical implementation of a payment flow. It has five steps that span a database, a message broker and a worker, and the system can fail between any two of them:
+
+<PaymentFlow />
+
+Now what happens if:
+- Two workers process the same payment concurrently?
+- A worker successfully charges a customer, but crashes before updating the database?
+- An even is delivered twice after a network timeout?
+- A retry races with a previous attempt?
+
+Testing is possible, but could prove tricky enumerate all the possible orderings. Determinsitic simulation testing is an option, but does not give you a formal guarantee of the design. Instead let's define the invariants and properties that must always hold under all conditions:
+
+For example:
+
+<div align="center">
+$$\forall{p},$$ succesful_charges$(p) \leq 1$
+
+</div>
+
+**Read as**: For all possible payments there should only be at most one corresponding charge.
+
+<div align="center">
+$$
+\forall p,\quad
+p.status = COMPLETED
+\implies
+p.charge\_succeeded
+$$
+
+</div>
+**Read as**: For all possible payments, if the payment's status is completed then its charge should also succeed. 
+
+Now notice that these are high-level descriptions, once again you're verifying the **algorithm** not the **implementation**. We'll look at how you can verify the implementation later. The simplest approach to formal verification technique is called *Model Checking*.
+
+### Model Checking
+
+Model checking focuses on constructing a finite state machine of the system and checking whether an invariant holds. Formally described as:
+
+<div align="center">
+$$M \models \phi$$
+
+<i>Read as Model $M$ models invariant $\phi$</i>
+</div>
+
+The invariant is described in some propositional logic formula like [LTL](https://www.cs.cmu.edu/~aldrich/courses/17-355-18sp/notes/slides16-model-checking.pdf) or [ATL](https://www.cis.upenn.edu/~alur/Jacm02.pdf).
+
+For the payment flow, a payment moves through a small set of states. The dashed loop is the part a model checker will probe: a crash or a redelivered event can bring a payment back into PROCESSING after the customer was already charged.
+
+<PaymentStates />
+
+To actually describe the abstract model in a way that can be verified you need a formal specification language. We will look at SPIN which I'm most familiar with, but TLA+ is another more popular option.
+
+```c
+#define PENDING    0
+#define PROCESSING 1
+#define COMPLETED  2
+
+byte payment_status = PENDING;
+byte charge_count = 0;
+
+ltl always_succeeds {[] (payment_status == COMPLETED -> charge_count == 1)}
+ltl charge_at_most_once {[] (charge_count <= 1)}
+
+proctype Worker()
+{
+	
+	// increment charge count
+	charge_count++;
+
+	// update payment status
+	payment_status = COMPLETED;
+
+	end:
+    	skip;
+}
+
+init {
+    atomic {
+        run Worker();
+        run Worker();
+    }
+}
+```
+
+The specification language takes inspiration from C and reads pretty much like any other piece of code. The entrypoint of our script is the `init` block. The important thing to keep in mind when reading a SPIN spec is that the SPIN runtime interleaves the statements inside `proctype` and `init` blocks. The statements themselves are executed atomically, but can be executed concurrently with non-deterministic ordering if there are multiple instances of the `proctype`. The `atomic` block is used to ensure atomic execution of a block of statements. `ltl` indicates the invariants we want to enforce. The statements are written as linear temporal logic propositions. 
+
+```c
+init {
+    atomic {
+        run Worker();
+        run Worker();
+    }
+}
+```
+
+The `run` keyword indicates you want to spawn an instance of the `proctype` also called a process type. In our specification we want to check verify our invariant that a single payment is charged at most once under all possible executions when there is more than one worker.
+
+Our current spec of the algorithm is obviously flawed. In this current setup there is no guard to protect against the concurrent execution so a double charge is possible. A naive fix might be to add a guard for checking if the payment is in progress and then updating its status to `PROCESSING`.
+
+```c
+proctype Worker()
+{
+
+  if payment_status == PENDING
+  ::
+    payment_status = PROCESSING;
+  fi
+	
+	// increment charge count
+	charge_count++;
+
+	// update payment status
+	payment_status = COMPLETED;
+
+	end:
+    	skip;
+}
+```
+
+This does still have a subtle issue. It is possible for one worker to reach the payment_status check and then the runtime yield to the other worker which will also see payment_status as `PENDING` still. Since the body of the if statement has not been run by either worker. To fix the spec we will need to wrap the the if statement in an `atomic` block to ensure both statements are executed with no-interleaving. 
+
+```c
+proctype Worker()
+{
+    atomic {
+        if 
+        :: payment_status == PENDING
+            payment_status = PROCESSING;
+        else
+            goto end;
+        fi
+    }
+
+	
+	// increment charge count
+	charge_count++;
+
+	// update payment status
+	payment_status = COMPLETED;
+
+	end:
+    	skip;
+}
+```
+
+Running this through the SPIN model checker will produce 0 counterexamples so we can be sure with any arbitrary orderings that our algorithm is sound. 
+
+Here is what SPIN does with each of the three versions. It walks the states depth-first, stores each state it reaches, backtracks when it hits one it has already stored, and stops at the first state that breaks a property:
+
+<SpinChecker />
+
+The method described above is considered to be closer to "classical" model checking where an abstract implementation is verified. However, what do you do if you want to write the implementation and then prove the properties of the implementation itself. That is where Lean comes in. 
+
+## Lean
+
+Lean does not use Model Checking as its proof verification technique, but the exact method is not too important. The process is still similar to what we explored above. Lean uses a technique called *Interactive theorem proving* that is based on *dependent type theory*. What this means simply is that a proof can be proven by the language type checker at compile-time. The connection being that you can express properties of types that then becomes a new type. Consider the following sort function signature in Lean:
+
+```lean
+sort :
+  (xs : List Nat) →
+  {ys : List Nat // Sorted ys ∧ Permutation xs ys}
+```
+
+This function takes in a list of natural numbers and returns a list of natural numbers. Now from the perspective of the caller instead of trusting that the list is sorted you now have guarantee (everything after double slash) from the type system saying that `ys` is sorted *and* is also only contains the input list's elements. Lean supports unicode characters so it is typical to see compact mathematical symbols in source code.
+
+For a more realistic scenario consider a merge join that joins two tables in one pass, but only when both inputs are sorted on the join key. In most languages that is a comment on the function. In Lean it is an argument:
+
+```lean
+structure Order    where id : Nat; customerId : Nat
+structure Customer where id : Nat; name : String
+
+def mergeJoin
+    (orders    : List Order)
+    (hO        : orders.Pairwise (·.customerId ≤ ·.customerId))
+    (customers : List Customer)
+    (hC        : customers.Pairwise (·.id ≤ ·.id)) :
+    List (Order × Customer) := ...
+```
+
+`hO` and `hC` are proofs and carry the `Proof` type. You cannot call `mergeJoin` without them, and the only way to get them is from a query that returns them:
+
+```lean
+
+
+
+def fetchOrders : IO { rows : List Order // rows.Pairwise (·.customerId ≤ ·.customerId) }
+
+
+
+```
+
+<MergeJoin />
+
+With that guarantee you end up with a very useful system where you can *verify* behaviour during the type checking phase of the compile step. That means that you can then in essence remove certain runtime checks, but mainly gain trust in the program behaviour.
+
+## Reading from a DB
+
+Now we get to the really exciting part, we can leverage this behaviour to write some stupidly optimised database reads that we know will behave as expected. To understand this optimisation we first need to take a look at how sqlite handles a query. In sqlite all data and metadata lives in a single `.db` file on disk. The sqlite binary interacts with this file to perform the necessary read and write operations.
+
+To better understand how it works, let's look at the db file:
+
+<SqliteStat />
+
+The file is a stack of equal-size pages. Below is a real, tiny `.db` file. Edit the rows and watch the bytes change. 
+
+<SqliteFile />
+
+Clicking on the cell pointers will take you to the corresponding offset in the file. The first page of the file contains the sqlite settings with pointers to the table and index definitions. At startup the sqlite binary will read the first 100 bytes and then follow the cell pointers. It will then parse the schema text using the SQL parser so it can populate the in-memory schema. The root page pointer is then used to follow to find the root of the B+-tree node. This requires a second disk read as we pass the offset of the root pointer. The interesting part here is that the index duplicates the content it is indexing, this is to allow searching the table without reading the table itself. In a real database you can see how this could result in less disk reads. 
+
+The data structure that sqlite is built on is the B+-tree, which is a balance n-ary tree (balance binary tree with n-children per node) and that is what the sql engine interacts with when answering your queries. Now in the internal sqlite API you can actually interact with this API, so if you can figure out how your data is layed out on disk you can skip the sql phase completely and just read raw data from disk.
+
+## Lean + SQL
+
+Now how do we combine the power of Lean and this new B-tree API? Consider the scenario where we want the last 20 rows of a table. The API provides a method `sqlite3BtreeLast` which moves the cursor to the right-most leaf entry, the newest row. This costs one page read per level, from the root down. We then call `sqlite3BtreePrevious` 19 times to walk back through the rest of the rows. We never scan the table from the start, and we never need to know the rowids.
+
+This is where Lean steps in. We model the table, write the spec of what we want, and verify that our plan of traversing the data gives the same answer.
+
+First the data model. A table is a list of rows, and the one thing we take from SQLite is the order they come in. A table B-tree keeps its leaf entries in strictly increasing rowid order, so we state that as a property of the table:
+
+```lean
+structure Post where
+  id   : Nat
+  body : String
+
+structure Db where
+  posts : List Post          -- rows as the table B-tree holds them
+
+/-- What a table B-tree guarantees: leaf entries are in strictly increasing rowid order. -/
+def Db.Sorted (db : Db) : Prop := db.posts.Pairwise (fun a b => a.id < b.id)
+```
+
+Now the spec and the plan. The spec is the SQL meaning of "the last `n` rows": sort by id descending, take `n`, and put them back in ascending order. It talks about ids and not about the layout of the list. `walkBack` is our model of `Last` followed by `Previous` until the start: the cursor visits the rows in reverse tree order.
+
+```lean
+/-- Spec: SELECT ... ORDER BY id DESC LIMIT n, then ascending order again. -/
+def Db.byIdDesc (db : Db) : List Post :=
+  db.posts.mergeSort (fun a b => decide (b.id ≤ a.id))
+
+def Db.lastN (db : Db) (n : Nat) : List Post :=
+  (db.byIdDesc.take n).reverse
+
+/-- Model of sqlite3BtreeLast, then sqlite3BtreePrevious until the start. -/
+def Db.walkBack (db : Db) : List Post := db.posts.reverse
+
+/-- Plan: Last, then Previous n - 1 times. Stop after n rows and put them back in order. -/
+def Db.plan (db : Db) (n : Nat) : List Post :=
+  (db.walkBack.take n).reverse
+```
+
+The spec sorts the whole table. The plan only touches the last `n` rows. They look like different programs, so we need a proof that they agree. The proof has two steps. First, on a sorted table, sorting by id descending is the same as reversing the list. Second, the plan is then the spec, with the sort replaced by a reverse: In Lean to prove something we use a **theorem**, in mathematics a theorem is a logical statement that can be or has been proven to be true. In Lean a theorem has two components a **goal** and a set of **tactics** that are applied to the goal to prove it.
+
+```lean
+theorem byIdDesc_eq (db : Db) (hs : db.Sorted) : db.byIdDesc = db.posts.reverse := by
+  unfold Db.byIdDesc
+  apply List.Perm.eq_of_pairwise (le := fun a b => decide (b.id ≤ a.id) = true)
+  · intro a b ha hb hab hba
+    simp only [List.mem_mergeSort] at ha
+    simp only [List.mem_reverse] at hb
+    simp only [decide_eq_true_eq] at hab hba
+    exact eq_of_id_eq db hs a b ha hb (by omega)
+  · exact List.pairwise_mergeSort
+      (fun a b c hab hbc => by simp only [decide_eq_true_eq] at *; omega)
+      (fun a b => by simp only [Bool.or_eq_true, decide_eq_true_eq]; omega) _
+  · rw [List.pairwise_reverse]
+    exact hs.imp (fun h => by simp only [decide_eq_true_eq]; omega)
+  · exact (List.mergeSort_perm _ _).trans (List.reverse_perm _).symm
+
+theorem plan_eq (db : Db) (hs : db.Sorted) (n : Nat) : db.plan n = db.lastN n := by
+  unfold Db.plan Db.lastN Db.walkBack
+  rw [byIdDesc_eq db hs]
+```
+
+The `byIdDesc_eq` theorem's goal is initially:
+
+```lean
+db.plan n = db.lastN
+```
+
+So we are tasked with a proof by equivalence. The `unfold` tactic is applied which inlines the body of definitions, so the goal now becomes:
+
+```lean
+db.posts.mergeSort (fun a b => decide (b.id ≤ a.id)) = db.posts.reverse
+```
+
+We then do something cool, we use the `apply` tactic. It uses a *lemma* that matches your goal. A lemma is described as a statement that has been proven true and is used in helping proving a theorem. In this case we are using the lemma that two lists that are sorted with the same ordering and are permutations of each other are considered equal. This lemma is made up of the following premises which allow you to make the conclusion:
+
+```text
+# Read as for any element a of list 1 and any element of list 2, if a ≤ b and b ≤ a then a = b
+Premise 1: ∀ a b, a ∈ l₁ → b ∈ l₂ → le a b → le b a → a = b (antisymmetry)
+Premise 2: list_1 is sorted using le
+Premise 3: list_2 is sorted using le
+Premise 4: list_1 is a permutation of list_2
+Conclusion: list_1 = list_2
+```
+
+Lean will verify that our goal and the conclusion of the lemma are the same and so it will replace the goal with the four premises. To help us prove the new goal, we need to make an assumption with the `intro` tactic. This is to prove premise 1, this is detailed in the companion repo and makes use of a second theorem. 
+
+### Premise 2
+For premise 2 we need to prove that db.posts.mergeSort list is actually sorted. Proving that it is sorted requires proving that the order is transitive and total. The Lean library gives us the List.pairwise_mergeSort lemma to prove that a list is sorted. We just need to prove that the list order is transitive and total. Transitive ordering is proving that if a ≤ b and b ≤ c then a ≤ c. Totality describes that any two elements of a list can be compared. 
+
+```lean
+  · exact List.pairwise_mergeSort
+      -- transitive
+      (fun a b c hab hbc => by simp only [decide_eq_true_eq] at *; omega)
+      -- total
+      (fun a b => by simp only [Bool.or_eq_true, decide_eq_true_eq]; omega) _
+```
+
+The transitivity is proved with a function that is given three posts and it is given two facts: a ≤ b and b ≤ c, we need to prove the goal:
+
+```lean
+c.id ≤ a.id
+```
+
+We need to apply the `decide_eq_true_eq` step for reasons that are not super important. The omega statement is doing the actual proof of a ≤ c.
+
+### Premise 3
+For premise 3 we need to prove that the reverse posts list is sorted. Instead of doing the same process as above we can do something simpler. 
+The goal is currently:
+
+```lean
+List.Pairwise (fun a b => decide (b.id ≤ a.id) = true) db.posts.reverse
+```
+
+We apply the rewrite tactic `rw` so we can get rid of this b.id ≤ a.id.
+
+```lean
+ Pairwise (fun a b => decide (a.id ≤ b.id) = true) db.posts
+```
+
+Since we now have the ascending order hypothesis a.id ≤ b.id we use the `Db.sorted` proof. The proof is applied to every element of posts.
+
+### Premise 4
+
+To prove that the lists are permutations of each other we need to show that a merge sort and reverse ordering are the same. We use properties of the pemutation proof to connect the two. The symmetry property states that l1 Perm of l2 -> l2 Perm of l1. We then use the transitive property to connect the fact that sorted posts are a permutation of the reversed list of posts.
+
+## Conclusion
+
+This form of reasoning might seem insane, but forces you to reason differently about your code and the way it works. That is the real power, the confidence that it works as expected is another bonus. Lean is a powerful language and its ability to generate C code makes it much more practical compared to its model-checking counterpart SPIN. 
+
+Now to conclude here are some numbers to prove its speed:
+
+<Benchmarks />
+
+Using the B-tree API gives roughly 2.4x speedup. Lean did not give us the speedup, but it did give us the proof that it is correct and that is the value that it carries. Now whether this is worth it is up to you, but in the age of AI it seems pretty cheap. Its guarantee is stronger than that of a unit test or integration test and forces your AI agent to think at a deeper level than that of just the pure implementation.
+
+export default function MDXPage({ children }) {
+  return <MdxLayout meta={meta}>
+    {children}
+  </MdxLayout>
+}
+
