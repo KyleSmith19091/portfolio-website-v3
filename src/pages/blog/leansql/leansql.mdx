@@ -327,7 +327,7 @@ Premise 4: list_1 is a permutation of list_2
 Conclusion: list_1 = list_2
 ```
 
-Lean will verify that our goal and the conclusion of the lemma are the same and so it will replace the goal with the four premises. To help us prove the new goal, we need to make an assumption with the `intro` tactic. This is to prove premise 1, this is detailed in the companion repo and makes use of a second theorem. 
+Lean will verify that our goal and the conclusion of the lemma are the same and so it will replace the goal with the four premises. To help us prove the new goal, we need to make an assumption with the `intro` tactic. This is to prove premise 1, this is detailed in the [companion repo](https://github.com/KyleSmith19091/LeanSQL) and makes use of a second theorem. 
 
 ### Premise 2
 For premise 2 we need to prove that db.posts.mergeSort list is actually sorted. Proving that it is sorted requires proving that the order is transitive and total. The Lean library gives us the List.pairwise_mergeSort lemma to prove that a list is sorted. We just need to prove that the list order is transitive and total. Transitive ordering is proving that if a ≤ b and b ≤ c then a ≤ c. Totality describes that any two elements of a list can be compared. 
@@ -375,6 +375,8 @@ This form of reasoning might seem insane, but forces you to reason differently a
 Now to conclude here are some numbers to prove its speed:
 
 <Benchmarks />
+
+Run the benchmarks yourself with `make bench` in the [companion repo](https://github.com/KyleSmith19091/LeanSQL).
 
 Using the B-tree API gives roughly 2.4x speedup. Lean did not give us the speedup, but it did give us the proof that it is correct and that is the value that it carries. Now whether this is worth it is up to you, but in the age of AI it seems pretty cheap. Its guarantee is stronger than that of a unit test or integration test and forces your AI agent to think at a deeper level than that of just the pure implementation.
 
