@@ -160,6 +160,16 @@ article {
     border-width: 0 2px 2px 0;
 }
 
+.box-container[data-ready="false"],
+.center-dot[data-ready="false"] {
+    opacity: 0;
+}
+
+.box-container,
+.center-dot {
+    will-change: transform;
+}
+
 .center-dot {
     position: fixed;
     width: 5px;
