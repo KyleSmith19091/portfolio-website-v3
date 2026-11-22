@@ -1,7 +1,7 @@
 export const meta = {
   title: "Lean SQL: Formally Verifying Runtime Cost",
-  description: "Looking at how to leverage formal specifications to improve ",
-  ogImage: "/blog/lsm-db/day1.png",
+  description: "Looking at how to leverage formal specifications to speed up database reads.",
+  ogImage: "/blog/leansql/leansql.png",
   date: "2026-11-21",
   author: "Kyle Smith",
   keywords: ["b-tree", "database", "storage engine", "c"],
@@ -18,9 +18,9 @@ import SqliteFile from '../../../components/sqlite-file';
 import Benchmarks from '../../../components/benchmarks';
 
 
-Have you ever seen an SQL query and thought: Wow I really want to speedup this query, let me write a Lean spec. Yeah me neither. 
-Lean is a programming language for writing *formally verified* code. Formal verification is described as the process of proving or disproving that a hardware or software system behaves according to a formal specification. This is a pretty powerful idea and has been more commonly found in safety-critical or expensive-if-it-breaks systems such as [the mars rover flight software](https://www-robotics.jpl.nasa.gov/media/documents/biesiadecki_maimone06.pdf) and [aircraft wheel-braking systems](https://es-static.fbk.eu/people/bozzano/publications/cav2015a.pdf). 
-Formal verification has been until fairly recently been a unpopular and unglamorous resarch area due to its high complexity and limited cost-effective practical applications. However with the latest frontier models we are now able to create formal specifications without a PHD and more easily apply them to a wider range of software systems. We will in particular explore how we can leverage formal verification to actually speedup database calls. 
+Have you ever seen an SQL query and thought: Wow I really want to speed up this query, let me write a Lean spec. Yeah me neither. 
+Lean is a programming language for writing *formally verified* code. Formal verification is described as the process of proving or disproving that a hardware or software system behaves according to a formal specification. This is a pretty powerful idea and has been more commonly found in safety-critical or expensive-if-it-breaks systems such as [the Mars rover flight software](https://www-robotics.jpl.nasa.gov/media/documents/biesiadecki_maimone06.pdf) and [aircraft wheel-braking systems](https://es-static.fbk.eu/people/bozzano/publications/cav2015a.pdf). 
+Formal verification has, until fairly recently, been an unpopular and unglamorous research area due to its high complexity and limited cost-effective practical applications. However with the latest frontier models we are now able to create formal specifications without a PhD and more easily apply them to a wider range of software systems. We will in particular explore how we can leverage formal verification to actually speed up database calls. 
 
 ### Sections
 - <a href="#1">How Does Formal Verification Work?</a>
@@ -39,15 +39,15 @@ To see why this matters, look at a typical implementation of a payment flow. It 
 Now what happens if:
 - Two workers process the same payment concurrently?
 - A worker successfully charges a customer, but crashes before updating the database?
-- An even is delivered twice after a network timeout?
+- An event is delivered twice after a network timeout?
 - A retry races with a previous attempt?
 
-Testing is possible, but could prove tricky enumerate all the possible orderings. Determinsitic simulation testing is an option, but does not give you a formal guarantee of the design. Instead let's define the invariants and properties that must always hold under all conditions:
+Testing is possible, but could prove tricky to enumerate all the possible orderings. Deterministic simulation testing is an option, but does not give you a formal guarantee of the design. Instead let's define the invariants and properties that must always hold under all conditions:
 
 For example:
 
 <div align="center">
-$$\forall{p},$$ succesful_charges$(p) \leq 1$
+$$\forall{p},$$ successful_charges$(p) \leq 1$
 
 </div>
 
@@ -127,7 +127,7 @@ init {
 }
 ```
 
-The `run` keyword indicates you want to spawn an instance of the `proctype` also called a process type. In our specification we want to check verify our invariant that a single payment is charged at most once under all possible executions when there is more than one worker.
+The `run` keyword indicates you want to spawn an instance of the `proctype` also called a process type. In our specification we want to verify our invariant that a single payment is charged at most once under all possible executions when there is more than one worker.
 
 Our current spec of the algorithm is obviously flawed. In this current setup there is no guard to protect against the concurrent execution so a double charge is possible. A naive fix might be to add a guard for checking if the payment is in progress and then updating its status to `PROCESSING`.
 
@@ -151,7 +151,7 @@ proctype Worker()
 }
 ```
 
-This does still have a subtle issue. It is possible for one worker to reach the payment_status check and then the runtime yield to the other worker which will also see payment_status as `PENDING` still. Since the body of the if statement has not been run by either worker. To fix the spec we will need to wrap the the if statement in an `atomic` block to ensure both statements are executed with no-interleaving. 
+This does still have a subtle issue. It is possible for one worker to reach the payment_status check and then the runtime yield to the other worker which will also see payment_status as `PENDING` still. Since the body of the if statement has not been run by either worker. To fix the spec we will need to wrap the if statement in an `atomic` block to ensure both statements are executed with no-interleaving. 
 
 ```c
 proctype Worker()
@@ -187,7 +187,7 @@ The method described above is considered to be closer to "classical" model check
 
 ## Lean
 
-Lean does not use Model Checking as its proof verification technique, but the exact method is not too important. The process is still similar to what we explored above. Lean uses a technique called *Interactive theorem proving* that is based on *dependent type theory*. What this means simply is that a proof can be proven by the language type checker at compile-time. The connection being that you can express properties of types that then becomes a new type. Consider the following sort function signature in Lean:
+Lean does not use Model Checking as its proof verification technique, but the exact method is not too important. The process is still similar to what we explored above. Lean uses a technique called *Interactive theorem proving* that is based on *dependent type theory*. What this means simply is that a proof can be proven by the language type checker at compile-time. The connection being that you can express properties of types that then become a new type. Consider the following sort function signature in Lean:
 
 ```lean
 sort :
@@ -195,7 +195,7 @@ sort :
   {ys : List Nat // Sorted ys ∧ Permutation xs ys}
 ```
 
-This function takes in a list of natural numbers and returns a list of natural numbers. Now from the perspective of the caller instead of trusting that the list is sorted you now have guarantee (everything after double slash) from the type system saying that `ys` is sorted *and* is also only contains the input list's elements. Lean supports unicode characters so it is typical to see compact mathematical symbols in source code.
+This function takes in a list of natural numbers and returns a list of natural numbers. Now from the perspective of the caller instead of trusting that the list is sorted you now have guarantee (everything after double slash) from the type system saying that `ys` is sorted *and* also only contains the input list's elements. Lean supports unicode characters so it is typical to see compact mathematical symbols in source code.
 
 For a more realistic scenario consider a merge join that joins two tables in one pass, but only when both inputs are sorted on the join key. In most languages that is a comment on the function. In Lean it is an argument:
 
@@ -229,7 +229,7 @@ With that guarantee you end up with a very useful system where you can *verify* 
 
 ## Reading from a DB
 
-Now we get to the really exciting part, we can leverage this behaviour to write some stupidly optimised database reads that we know will behave as expected. To understand this optimisation we first need to take a look at how sqlite handles a query. In sqlite all data and metadata lives in a single `.db` file on disk. The sqlite binary interacts with this file to perform the necessary read and write operations.
+Now we get to the really exciting part, we can leverage this behaviour to write some stupidly optimised database reads that we know will behave as expected. To understand this optimisation we first need to take a look at how SQLite handles a query. In SQLite all data and metadata lives in a single `.db` file on disk. The SQLite binary interacts with this file to perform the necessary read and write operations.
 
 To better understand how it works, let's look at the db file:
 
@@ -239,9 +239,9 @@ The file is a stack of equal-size pages. Below is a real, tiny `.db` file. Edit 
 
 <SqliteFile />
 
-Clicking on the cell pointers will take you to the corresponding offset in the file. The first page of the file contains the sqlite settings with pointers to the table and index definitions. At startup the sqlite binary will read the first 100 bytes and then follow the cell pointers. It will then parse the schema text using the SQL parser so it can populate the in-memory schema. The root page pointer is then used to follow to find the root of the B+-tree node. This requires a second disk read as we pass the offset of the root pointer. The interesting part here is that the index duplicates the content it is indexing, this is to allow searching the table without reading the table itself. In a real database you can see how this could result in less disk reads. 
+Clicking on the cell pointers will take you to the corresponding offset in the file. The first page of the file contains the SQLite settings with pointers to the table and index definitions. At startup the SQLite binary will read the first 100 bytes and then follow the cell pointers. It will then parse the schema text using the SQL parser so it can populate the in-memory schema. The root page pointer is then used to follow to find the root of the B+-tree node. This requires a second disk read as we pass the offset of the root pointer. The interesting part here is that the index duplicates the content it is indexing, this is to allow searching the table without reading the table itself. In a real database you can see how this could result in fewer disk reads. 
 
-The data structure that sqlite is built on is the B+-tree, which is a balance n-ary tree (balance binary tree with n-children per node) and that is what the sql engine interacts with when answering your queries. Now in the internal sqlite API you can actually interact with this API, so if you can figure out how your data is layed out on disk you can skip the sql phase completely and just read raw data from disk.
+The data structure that SQLite is built on is the B+-tree, which is a balanced n-ary tree (balanced binary tree with n-children per node) and that is what the sql engine interacts with when answering your queries. Now in the internal SQLite API you can actually interact with this API, so if you can figure out how your data is laid out on disk you can skip the sql phase completely and just read raw data from disk.
 
 ## Lean + SQL
 
@@ -304,7 +304,7 @@ theorem plan_eq (db : Db) (hs : db.Sorted) (n : Nat) : db.plan n = db.lastN n :=
   rw [byIdDesc_eq db hs]
 ```
 
-The `byIdDesc_eq` theorem's goal is initially:
+The `plan_eq` theorem's goal is initially:
 
 ```lean
 db.plan n = db.lastN
@@ -362,11 +362,11 @@ We apply the rewrite tactic `rw` so we can get rid of this b.id ≤ a.id.
  Pairwise (fun a b => decide (a.id ≤ b.id) = true) db.posts
 ```
 
-Since we now have the ascending order hypothesis a.id ≤ b.id we use the `Db.sorted` proof. The proof is applied to every element of posts.
+Since we now have the ascending order hypothesis a.id ≤ b.id we use the `Db.Sorted` proof. The proof is applied to every element of posts.
 
 ### Premise 4
 
-To prove that the lists are permutations of each other we need to show that a merge sort and reverse ordering are the same. We use properties of the pemutation proof to connect the two. The symmetry property states that l1 Perm of l2 -> l2 Perm of l1. We then use the transitive property to connect the fact that sorted posts are a permutation of the reversed list of posts.
+To prove that the lists are permutations of each other we need to show that a merge sort and reverse ordering are the same. We use properties of the permutation proof to connect the two. The symmetry property states that l1 Perm of l2 -> l2 Perm of l1. We then use the transitive property to connect the fact that sorted posts are a permutation of the reversed list of posts.
 
 ## Conclusion
 
