@@ -5,16 +5,13 @@ import Code from '../../../components/code';
 
 export const meta = {
   title: "Scaling Filesystems",
+  heading: "Design choices behind distributed filesystems",
   description: "What are some of the design decisions behind large-scale distributed filesystems",
   ogImage: "/blog/induction/cap.png",
-  date: "2026-04-02",
   author: "Kyle Smith",
   keywords: ["filesystem", "distributed systems", "google", "hadoop"],
 };
 
-# Design choices behind distributed filesystems
-<span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2026-04-02</span>
-<hr />
 
 While implementing an <a href="/blog/lsm-db/day1.png">LSM-DB from scratch</a>, I've come across a lot of interesting LSM-DB projects,
 one of them being <a href="https://slatedb.io/" target="new">SlateDB</a> which is an LSM-DB built on top of object storage. 

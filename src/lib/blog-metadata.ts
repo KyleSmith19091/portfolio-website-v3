@@ -102,5 +102,18 @@ export function getBlogPost(slug: string): BlogPost | undefined {
 }
 
 export function getAllBlogPosts(): BlogPost[] {
-  return blogPosts.sort((a, b) => b.date.getTime() - a.date.getTime());
+  return [...blogPosts].sort((a, b) => b.date.getTime() - a.date.getTime());
+}
+
+// Neighbours in publish order: `previous` is the next older post, `next` the next newer one
+export function getAdjacentPosts(slug: string): {
+  previous?: BlogPost;
+  next?: BlogPost;
+} {
+  const posts = getAllBlogPosts();
+  const index = posts.findIndex((post) => post.slug === slug);
+  if (index === -1) {
+    return {};
+  }
+  return { previous: posts[index + 1], next: posts[index - 1] };
 }

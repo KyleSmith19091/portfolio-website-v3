@@ -1,17 +1,14 @@
 export const meta = {
   title: "LSM-DB - Day 2",
+  heading: "LSM In A Week - Day 2",
   description: "LSM-DB Build Day 2",
   ogImage: "/blog/lsm-db/day1.png",
-  date: "2026-02-05",
   author: "Kyle Smith",
   keywords: ["lsm", "database", "storage engine", "rust", "lifetimes"],
 };
 
 import MdxLayout from '../../../components/mdx';
 
-# LSM In A Week - Day 2
-<span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2026-02-05</span>
-<hr />
 
 We've reached the second installment of the LSM storage engine build (see <a href="/blog/lsm-db/day1" target="new">day 1</a> to follow along). For day 2 of the build we focus on implementing the `scan` API for the storage engine. This is to allow for reading multiple key-value pairs by providing a byte range. The implementation had some interesting parts, but the most interesting part was the Rust lifetimes shenanigans.
 

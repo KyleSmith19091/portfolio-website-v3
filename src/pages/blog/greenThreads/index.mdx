@@ -2,16 +2,13 @@ import MdxLayout from '../../../components/mdx';
 
 export const meta = {
   title: "Green Threads from scratch",
+  heading: "Green Threads from scratch in Zig",
   description: "Implementing green threads (coroutines + a scheduler) from scratch in Zig.",
   ogImage: "/blog/greenThreads/greenThreads.png",
-  date: "2026-06-21",
   author: "Kyle Smith",
   keywords: ["green threads", "coroutines", "zig", "scheduler", "concurrency"],
 };
 
-# Green Threads from scratch in Zig
-<span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2026-06-21</span>
-<hr />
 
 Green threads or user-level threads are units of work that don't require explicit interaction with the kernel. Hence describing them as "user-level". 
 Since these are in user-level we have explicit control over how they work, when they yield to other executing threads and how much memory they allocate for setting up the execution context.

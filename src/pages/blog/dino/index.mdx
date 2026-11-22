@@ -5,14 +5,10 @@ export const meta = {
   title: "What makes good image features?",
   description: "How ViT backbones like DINOv3 learn dense, semantic image features — patch embeddings, subspaces and the geometry of learned representations.",
   ogImage: "/blog/dino/vit-architecture.png",
-  date: "2026-08-08",
   author: "Kyle Smith",
   keywords: ["computer vision", "DINOv3", "vision transformer", "ViT", "patch embeddings", "features", "representation learning", "manifolds"],
 };
 
-# What makes good image features?
-<span className="font-semibold">by Kyle Smith</span> on <span className="text-gray-400">2026-08-08</span>
-<hr />
 
 During the breakthrough of deep learning around 2012, the deep convolutional neural network AlexNet was considered the gold standard. The CNN architecture still remains a very solid architecture, as they are generally efficient, powerful and can be used for almost every computer vision task. CNNs are trained to develop their own feature extractors through parameterised kernels. As found in [this article by Anthropic](https://distill.pub/2020/circuits/zoom-in/), CNNs in the earlier layers optimise kernels to identify basic geometric features such as lines, curves etc. These features form the basis of a hierarchy of features that become more and more abstract.
 
