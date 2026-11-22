@@ -95,6 +95,16 @@ export const blogPosts: BlogPost[] = [
     ogImage: "/blog/greenThreads/greenThreads.png",
     keywords: ["green threads", "coroutines", "zig", "scheduler", "concurrency"],
   },
+  {
+    slug: "leansql/leansql",
+    title: "Lean SQL: Formally Verifying Runtime Cost",
+    description:
+      "Looking at how to leverage formal specifications to speed up database reads.",
+    date: new Date("2026-11-21"),
+    author: "Kyle Smith",
+    ogImage: "/blog/leansql/leansql.png",
+    keywords: ["b-tree", "database", "storage engine", "c"],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
