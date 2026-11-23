@@ -543,7 +543,7 @@ export default function SqliteFile() {
     const button = "border border-black px-3 py-1 text-sm cursor-none transition-colors";
 
     return (
-        <figure className="not-prose my-12">
+        <figure className="not-prose my-14 lg:-mx-12 xl:-mx-32">
             <div className="mb-8">
                 <div className="mb-8">
                     <div className="text-xs tracking-[0.2em] text-[#70747d] mb-2">YOUR TABLE</div>

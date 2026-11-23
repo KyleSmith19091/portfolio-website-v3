@@ -27,7 +27,7 @@ const FAINT = "#c4c7cc";
 // Lifelines draw in first, then each step's arrow appears in order.
 export default function PaymentFlow() {
     return (
-        <figure className="not-prose my-12 overflow-x-auto">
+        <figure className="not-prose my-14 overflow-x-auto lg:-mx-12 xl:-mx-32">
             <motion.svg
                 viewBox="0 0 720 500"
                 className="w-full min-w-[600px]"
@@ -75,10 +75,10 @@ export default function PaymentFlow() {
                                 transition={{ duration: 0.7, delay, ease }}
                             />
                             <circle cx={a} cy={s.y} r="3.5" fill={INK} />
-                            <text x={(a + b) / 2} y={s.y - 20} textAnchor="middle" fontSize="12" fill={MUTED} className="tabular-nums">
+                            <text x={(a + b) / 2} y={s.y - 28} textAnchor="middle" fontSize="12" fill={MUTED} className="tabular-nums">
                                 {String(i + 1).padStart(2, "0")}
                             </text>
-                            <text x={(a + b) / 2} y={s.y - 8} textAnchor="middle" fontSize="14" fill={INK}>
+                            <text x={(a + b) / 2} y={s.y - 11} textAnchor="middle" fontSize="14" fill={INK}>
                                 {s.label}
                             </text>
                         </motion.g>

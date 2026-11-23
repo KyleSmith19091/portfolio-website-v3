@@ -82,7 +82,7 @@ export default function SqliteStat() {
     );
 
     return (
-        <figure className="not-prose my-12">
+        <figure className="not-prose my-14 lg:-mx-12 xl:-mx-32">
             <div className="text-xs tracking-[0.2em] text-[#70747d] mb-2">POINT AT A FIELD</div>
             <div className="overflow-x-auto">
                 <pre className="font-mono text-[13px] leading-8 border-t border-b border-black py-2 min-w-[560px]">
@@ -100,7 +100,7 @@ export default function SqliteStat() {
                 </pre>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start mt-6">
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start mt-6">
                 <div>
                     <div className="flex items-center gap-2 mb-3">
                         <button onClick={() => setPages((p) => Math.max(1, p - 1))} className={button} aria-label="remove a page">

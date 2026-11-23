@@ -62,7 +62,7 @@ export default function Benchmarks() {
     const current = MODES.find((m) => m.id === mode)!;
 
     return (
-        <figure className="not-prose my-12">
+        <figure className="not-prose my-14 lg:-mx-12 xl:-mx-32">
             <div className="text-xs tracking-[0.2em] text-[#70747d] mb-2">TIME PER QUERY, 1,000,000 ROWS  ·  LOWER IS BETTER</div>
 
             <div role="tablist" className="flex flex-wrap gap-2 mb-3">
@@ -103,7 +103,7 @@ export default function Benchmarks() {
 
             <div className="border-t border-black">
                 {groups.map((g) => (
-                    <div key={`${mode}-${g.n}`} className="py-5 border-b border-[#d4d6da] grid gap-3 md:grid-cols-[5.5rem_minmax(0,1fr)]">
+                    <div key={`${mode}-${g.n}`} className="py-5 border-b border-[#d4d6da] grid gap-3 lg:grid-cols-[5.5rem_minmax(0,1fr)]">
                         <div className="font-mono text-sm">
                             n = {g.n.toLocaleString("en-US")}
                             <div className="text-[11px] text-[#70747d]">{g.n === 1 ? "1 row" : `${g.n.toLocaleString("en-US")} rows`}</div>

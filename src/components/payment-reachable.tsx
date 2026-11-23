@@ -33,7 +33,7 @@ const draw = { hidden: { pathLength: 0 }, visible: { pathLength: 1 } };
 // S5 is the only state that breaks "at most one charge per payment", drawn as a filled box.
 export default function PaymentReachable() {
     return (
-        <figure className="not-prose my-12 overflow-x-auto">
+        <figure className="not-prose my-14 overflow-x-auto lg:-mx-12 xl:-mx-32">
             <motion.svg
                 viewBox="0 0 880 320"
                 className="w-full min-w-[700px]"

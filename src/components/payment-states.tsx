@@ -27,7 +27,7 @@ const draw = { hidden: { pathLength: 0 }, visible: { pathLength: 1 } };
 // The dashed loop on PROCESSING is the hazard: a redelivered or retried event re-enters a state that already charged.
 export default function PaymentStates() {
     return (
-        <figure className="not-prose my-12 overflow-x-auto">
+        <figure className="not-prose my-14 overflow-x-auto lg:-mx-12 xl:-mx-32">
             <motion.svg
                 viewBox="0 0 800 330"
                 className="w-full min-w-[640px]"

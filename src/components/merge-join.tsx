@@ -142,7 +142,7 @@ export default function MergeJoin() {
     const button = "border border-black px-3 py-1 text-sm cursor-none transition-colors";
 
     return (
-        <figure ref={ref} className="not-prose my-12">
+        <figure ref={ref} className="not-prose my-14 lg:-mx-12 xl:-mx-32">
             <div className="flex flex-wrap gap-2 mb-6">
                 {modes.map((m, i) => (
                     <button
@@ -155,7 +155,7 @@ export default function MergeJoin() {
                 ))}
             </div>
 
-            <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_300px] items-start">
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
                 <div className="overflow-x-auto">
                     <svg
                         viewBox={`0 0 470 ${HEIGHT}`}
