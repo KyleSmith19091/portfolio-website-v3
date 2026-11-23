@@ -24,6 +24,14 @@ Formal verification has, until fairly recently, been an unpopular and unglamorou
 
 ### Sections
 - <a href="#1">How Does Formal Verification Work?</a>
+  - <a href="#1.1">Model Checking</a>
+- <a href="#2">Lean</a>
+- <a href="#3">Reading from a DB</a>
+- <a href="#4">Lean + SQL</a>
+  - <a href="#4.1">Premise 2</a>
+  - <a href="#4.2">Premise 3</a>
+  - <a href="#4.3">Premise 4</a>
+- <a href="#5">Conclusion</a>
 
 <hr/>
 
@@ -66,6 +74,7 @@ $$
 
 Now notice that these are high-level descriptions, once again you're verifying the **algorithm** not the **implementation**. We'll look at how you can verify the implementation later. The simplest approach to formal verification technique is called *Model Checking*.
 
+<span id="1.1"></span>
 ### Model Checking
 
 Model checking focuses on constructing a finite state machine of the system and checking whether an invariant holds. Formally described as:
@@ -185,6 +194,7 @@ Here is what SPIN does with each of the three versions. It walks the states dept
 
 The method described above is considered to be closer to "classical" model checking where an abstract implementation is verified. However, what do you do if you want to write the implementation and then prove the properties of the implementation itself. That is where Lean comes in. 
 
+<span id="2"></span>
 ## Lean
 
 Lean does not use Model Checking as its proof verification technique, but the exact method is not too important. The process is still similar to what we explored above. Lean uses a technique called *Interactive theorem proving* that is based on *dependent type theory*. What this means simply is that a proof can be proven by the language type checker at compile-time. The connection being that you can express properties of types that then become a new type. Consider the following sort function signature in Lean:
@@ -227,6 +237,7 @@ def fetchOrders : IO { rows : List Order // rows.Pairwise (·.customerId ≤ ·.
 
 With that guarantee you end up with a very useful system where you can *verify* behaviour during the type checking phase of the compile step. That means that you can then in essence remove certain runtime checks, but mainly gain trust in the program behaviour.
 
+<span id="3"></span>
 ## Reading from a DB
 
 Now we get to the really exciting part, we can leverage this behaviour to write some stupidly optimised database reads that we know will behave as expected. To understand this optimisation we first need to take a look at how SQLite handles a query. In SQLite all data and metadata lives in a single `.db` file on disk. The SQLite binary interacts with this file to perform the necessary read and write operations.
@@ -243,6 +254,7 @@ Clicking on the cell pointers will take you to the corresponding offset in the f
 
 The data structure that SQLite is built on is the B+-tree, which is a balanced n-ary tree (balanced binary tree with n-children per node) and that is what the sql engine interacts with when answering your queries. Now in the internal SQLite API you can actually interact with this API, so if you can figure out how your data is laid out on disk you can skip the sql phase completely and just read raw data from disk.
 
+<span id="4"></span>
 ## Lean + SQL
 
 Now how do we combine the power of Lean and this new B-tree API? Consider the scenario where we want the last 20 rows of a table. The API provides a method `sqlite3BtreeLast` which moves the cursor to the right-most leaf entry, the newest row. This costs one page read per level, from the root down. We then call `sqlite3BtreePrevious` 19 times to walk back through the rest of the rows. We never scan the table from the start, and we never need to know the rowids.
@@ -329,6 +341,7 @@ Conclusion: list_1 = list_2
 
 Lean will verify that our goal and the conclusion of the lemma are the same and so it will replace the goal with the four premises. To help us prove the new goal, we need to make an assumption with the `intro` tactic. This is to prove premise 1, this is detailed in the [companion repo](https://github.com/KyleSmith19091/LeanSQL) and makes use of a second theorem. 
 
+<span id="4.1"></span>
 ### Premise 2
 For premise 2 we need to prove that db.posts.mergeSort list is actually sorted. Proving that it is sorted requires proving that the order is transitive and total. The Lean library gives us the List.pairwise_mergeSort lemma to prove that a list is sorted. We just need to prove that the list order is transitive and total. Transitive ordering is proving that if a ≤ b and b ≤ c then a ≤ c. Totality describes that any two elements of a list can be compared. 
 
@@ -348,6 +361,7 @@ c.id ≤ a.id
 
 We need to apply the `decide_eq_true_eq` step for reasons that are not super important. The omega statement is doing the actual proof of a ≤ c.
 
+<span id="4.2"></span>
 ### Premise 3
 For premise 3 we need to prove that the reverse posts list is sorted. Instead of doing the same process as above we can do something simpler. 
 The goal is currently:
@@ -364,10 +378,12 @@ We apply the rewrite tactic `rw` so we can get rid of this b.id ≤ a.id.
 
 Since we now have the ascending order hypothesis a.id ≤ b.id we use the `Db.Sorted` proof. The proof is applied to every element of posts.
 
+<span id="4.3"></span>
 ### Premise 4
 
 To prove that the lists are permutations of each other we need to show that a merge sort and reverse ordering are the same. We use properties of the permutation proof to connect the two. The symmetry property states that l1 Perm of l2 -> l2 Perm of l1. We then use the transitive property to connect the fact that sorted posts are a permutation of the reversed list of posts.
 
+<span id="5"></span>
 ## Conclusion
 
 This form of reasoning might seem insane, but forces you to reason differently about your code and the way it works. That is the real power, the confidence that it works as expected is another bonus. Lean is a powerful language and its ability to generate C code makes it much more practical compared to its model-checking counterpart SPIN. 
