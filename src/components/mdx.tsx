@@ -109,10 +109,13 @@ export default function MdxLayout({ children, meta }: MdxLayoutProps) {
               <article
                 ref={ref}
                 className={[
-                  "prose mx-auto max-w-3xl p-3",
+                  "prose mx-auto max-w-3xl min-w-0 px-0 py-3 sm:p-3 break-words",
                   "[--tw-prose-body:#171717] [--tw-prose-bold:#171717] [--tw-prose-bullets:#70747d] [--tw-prose-counters:#70747d]",
-                  "prose-headings:mt-12 prose-headings:font-medium prose-headings:tracking-tight prose-headings:text-black",
-                  "prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-h4:text-xl prose-h5:text-lg prose-h6:text-base",
+                  "prose-headings:mt-10 lg:prose-headings:mt-12 prose-headings:font-medium prose-headings:tracking-tight prose-headings:text-black",
+                  "prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg prose-h5:text-base prose-h6:text-base",
+                  "lg:prose-h1:text-4xl lg:prose-h2:text-3xl lg:prose-h3:text-2xl lg:prose-h4:text-xl lg:prose-h5:text-lg",
+                  "prose-pre:max-w-full prose-pre:overflow-x-auto prose-img:h-auto prose-img:max-w-full prose-video:max-w-full",
+                  "[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden",
                   "prose-a:text-black prose-a:underline-offset-4 prose-a:decoration-[#c4c7cc] prose-a:transition-colors prose-a:hover:decoration-black",
                 ].join(" ")}
               >
@@ -131,7 +134,7 @@ export default function MdxLayout({ children, meta }: MdxLayoutProps) {
                 <div className="not-prose sticky bottom-0 z-10 h-0 pointer-events-none">
                   <Spinner
                     progress={scrollYProgress}
-                    className="absolute bottom-0 right-0 lg:right-auto lg:left-full lg:ml-2 pointer-events-auto"
+                    className="hidden lg:block absolute bottom-0 lg:left-full lg:ml-2 pointer-events-auto"
                   />
                 </div>
               </article>
@@ -211,7 +214,7 @@ const PostNav = ({ previous, next }: PostNavProps) => {
   ].filter((link): link is { label: string; post: BlogPost } => Boolean(link));
 
   return (
-    <nav className="mx-auto max-w-3xl p-3 pt-16 pb-24">
+    <nav className="mx-auto max-w-3xl px-0 sm:p-3 pt-12 lg:pt-16 pb-16 lg:pb-24">
       <ul>
         {links.map(({ label, post }) => (
           <li key={post.slug}>
